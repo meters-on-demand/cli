@@ -1,0 +1,5 @@
+*
+!.gitignore
+!README.mond
+!MetersOnDemand.ps1
+!MetersOnDemand.psm1
