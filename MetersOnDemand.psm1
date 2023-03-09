@@ -17,13 +17,17 @@ function MetersOnDemand() {
         $Skin,
         [Parameter()]
         [string]
-        $Query
+        $Query,
+        [Parameter()]
+        [switch]
+        $Force
     )
 
     & "$($PSScriptRoot)\MetersOnDemand.ps1" `
         -Command $Command `
         -Parameter $Parameter `
         -Version:$Version `
+        -Force:$Force `
         -Skin $Skin `
         -Query $Query
 
