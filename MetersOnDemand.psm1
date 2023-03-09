@@ -8,16 +8,22 @@ function MetersOnDemand() {
         [Parameter(Position = 1)]
         [string]
         $Parameter,
-        [Alias("v")]
-        [Parameter()]
-        [switch]
-        $Version,
+        [Parameter(Position = 2)]
+        [string]
+        $Option,
         [Parameter()]
         [string]
         $Skin,
         [Parameter()]
         [string]
         $Query,
+        [Parameter()]
+        [string]
+        $Property,
+        [Alias("v")]
+        [Parameter()]
+        [switch]
+        $Version,
         [Parameter()]
         [switch]
         $Force
@@ -26,10 +32,12 @@ function MetersOnDemand() {
     & "$($PSScriptRoot)\MetersOnDemand.ps1" `
         -Command $Command `
         -Parameter $Parameter `
+        -Option $Option `
         -Version:$Version `
         -Force:$Force `
         -Skin $Skin `
-        -Query $Query
+        -Query $Query `
+        -Property $Property 
 
 }
 

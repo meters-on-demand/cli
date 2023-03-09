@@ -6,12 +6,18 @@ param (
     [Parameter(Position = 1)]
     [string]
     $Parameter,
+    [Parameter(Position = 2)]
+    [string]
+    $Option,
     [Parameter()]
     [string]
     $Skin,
     [Parameter()]
     [string]
     $Query,
+    [Parameter()]
+    [string]
+    $Property,
     [Alias("v")]
     [Parameter()]
     [switch]
@@ -135,7 +141,7 @@ function Download {
 
 function Install {
     param (
-        [Parameter(Position = 0)]
+        [Parameter(Mandatory, Position = 0)]
         [string]
         $FullName,
         [Parameter()]
@@ -256,7 +262,7 @@ function RemovedDirectory {
 
 function Uninstall {
     param (
-        [Parameter(Position = 0)]
+        [Parameter(Mandatory, Position = 0)]
         [string]
         $FullName,
         [Parameter()]
@@ -292,7 +298,7 @@ function Uninstall {
 
 function Restore {
     param (
-        [Parameter(Position = 0)]
+        [Parameter(Mandatory, Position = 0)]
         [string]
         $FullName,
         [Parameter()]
@@ -330,7 +336,7 @@ function Restore {
 
 function Upgrade {
     param (
-        [Parameter(Position = 0)]
+        [Parameter(Mandatory, Position = 0)]
         [string]
         $FullName
     )
@@ -350,10 +356,24 @@ function Upgrade {
 
 }
 
-# NOT IMPLEMENTED
+function Search {
+    param (
+        [Parameter(Position = 0)]
+        [string]
+        $Query,
+        [Parameter(Position = 1)]
+        [string]
+        $Property
+    )
+    if (-not $Query) { $Query = ".*" }
+    if (-not $Property) { $Property = "full_name" }
 
-function Search-Skins {
-    Write-Host "IMPLEMENT Search-Skins" -ForegroundColor Red
+    $Results = @()
+    foreach ($Entry in $Cache.Skins.GetEnumerator()) {
+        $Skin = $Entry.Value
+        if ($Skin[$Property] -match $Query) { $Results += $Skin }
+    }
+    return $Results
 }
 
 # Main body
@@ -402,8 +422,25 @@ try {
         }
         "search" {
             if ($Query) { $Parameter = $Query }
-            if (-not $Parameter) { throw "Tell me what to search dummy" }
-            Search $Parameter
+            if ($Property) { $Option = $Property }
+            $found = Search -Query $Parameter -Property $Option 
+
+            if (-not $found) { throw "No skins found." }
+
+            Write-Host "Found skins: "
+            $found | % {
+                Write-Host $_.full_name -ForegroundColor Blue -NoNewline
+                $versionColor = "White"
+                if ($Cache.Installed[$_.full_name]) {
+                    $versionColor = "Green"
+                }
+                if ($Cache.Updateable[$_.full_name]) {
+                    $versionColor = "Orange"
+                }
+                Write-Host " $($_.latest_release.tag_name)" -ForegroundColor $versionColor
+                Write-Host $_.description
+            }            
+            
             break
         }
         Default {
