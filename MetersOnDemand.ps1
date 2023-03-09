@@ -183,15 +183,17 @@ function Get-Request {
 
 function Get-Cache {
     $filecontent = Get-Content -Path $cacheFile 
-    if (-not $filecontent) { throw "No cache available" }
+    if (-not $filecontent) { return @{ } }
     return $filecontent | ConvertFrom-Json -AsHashtable
 }
 
 function Update {
+    $Cache = Get-Cache
+
     $response = Get-Request $skinsAPI
     if (-not $response) { 
         Write-Host "Couldn't reach API, using cache..." -ForegroundColor Yellow
-        return Get-Cache
+        return $Cache
     }
 
     $content = $response.Content
@@ -229,7 +231,7 @@ function Get-InstalledSkins {
             $latest = $Skin.latest_release.tag_name
             if ($existing) {
                 if ($existing -ne $latest) {
-                    $Cache.Updateable[$full_name]
+                    $Cache.Updateable[$full_name] = $latest
                 }
             }
             else {
@@ -430,14 +432,19 @@ try {
             Write-Host "Found skins: "
             $found | % {
                 Write-Host $_.full_name -ForegroundColor Blue -NoNewline
+                $current = $_.latest_release.tag_name
                 $versionColor = "White"
-                if ($Cache.Installed[$_.full_name]) {
+                $installed = $Cache.Installed[$_.full_name]
+                $updateable = $Cache.Updateable[$_.full_name]
+                if ($installed) {
+                    $current = $installed
                     $versionColor = "Green"
                 }
-                if ($Cache.Updateable[$_.full_name]) {
-                    $versionColor = "Orange"
-                }
-                Write-Host " $($_.latest_release.tag_name)" -ForegroundColor $versionColor
+                Write-Host " $($current)" -ForegroundColor $versionColor -NoNewline
+
+                if ($updateable) { Write-Host " ($($updateable) available)" -ForegroundColor Yellow }
+                else { Write-Host "" }
+
                 Write-Host $_.description
             }            
             
