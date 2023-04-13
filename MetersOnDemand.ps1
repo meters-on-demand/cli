@@ -188,7 +188,18 @@ function Get-Cache {
 }
 
 function Update {
+    param (
+        [Parameter()]
+        [switch]
+        $Force
+    )
+
     $Cache = Get-Cache
+
+    if (!$Force) {
+        $currentDate = Get-Date -Format "MM-dd-yy"
+        if ($Cache.LastChecked -eq $currentDate) { return $Cache }
+    }
 
     $response = Get-Request $skinsAPI
     if (-not $response) { 
@@ -205,12 +216,14 @@ function Update {
     if (-not $Cache.Installed) { $Cache["Installed"] = @{} }
     if (-not $Cache.Updateable) { $Cache["Updateable"] = @{} }
 
-    Get-InstalledSkins
     Save-Cache $Cache
     return $Cache
 }
 
 function Get-InstalledSkins {
+
+    $Cache = Get-Cache
+
     $settingsContent = Get-Content -Path $settingsPath -Raw
 
     if ($settingsContent -match 'SkinPath=(.*)') {
@@ -219,7 +232,7 @@ function Get-InstalledSkins {
         $path = $path -replace '\\?\s?$'
         $SkinPath = $path
     }
-    else { throw "Can't find SkinPath" }
+    else { throw "Can't find SkinPath in Rainmeter.ini" }
 
     $skinFolders = Get-ChildItem -Path "$($SkinPath)" -Directory 
     foreach ($skinFolder in $skinFolders) {
@@ -230,17 +243,15 @@ function Get-InstalledSkins {
             $existing = $Cache.Installed[$full_name]
             $latest = $Skin.latest_release.tag_name
             if ($existing) {
-                if ($existing -ne $latest) {
-                    $Cache.Updateable[$full_name] = $latest
-                }
+                if ($existing -ne $latest) { $Cache.Updateable[$full_name] = $latest }
             }
-            else {
-                $Cache.Installed[$full_name] = $latest
-            }
+            else { $Cache.Installed[$full_name] = $latest }
         }
     }
 
     $Cache.SkinPath = $SkinPath
+
+    Save-Cache $Cache
 
 }
 
@@ -386,7 +397,10 @@ try {
     if ($Command -eq "version") { return Version }
     if ($Command -eq "help") { return Help }
 
-    $Cache = Update
+    if ($Command -eq "update") { $Force = $True }
+    $Cache = Update -Force:$Force
+
+    Get-InstalledSkins
 
     switch ($Command) {
         "update" { Write-Host "Cache updated!" }
@@ -446,8 +460,7 @@ try {
                 else { Write-Host "" }
 
                 Write-Host $_.description
-            }            
-            
+            }
             break
         }
         Default {
