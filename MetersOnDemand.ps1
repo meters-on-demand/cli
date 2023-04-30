@@ -182,6 +182,7 @@ function Get-Request {
 }
 
 function Get-Cache {
+    if (!(Test-Path -Path $cacheFile)) { return @{ } }
     $filecontent = Get-Content -Path $cacheFile 
     if (-not $filecontent) { return @{ } }
     return $filecontent | ConvertFrom-Json -AsHashtable
