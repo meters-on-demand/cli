@@ -402,9 +402,9 @@ function Search {
     if (-not $Property) { $Property = "full_name" }
 
     $Results = @()
-    foreach ($Entry in $Cache.Skins.GetEnumerator()) {
+    foreach ($Entry in ToIteratable -Object $Cache.Skins ) {
         $Skin = $Entry.Value
-        if ($Skin[$Property] -match $Query) { $Results += $Skin }
+        if ($Skin.$Property -match $Query) { $Results += $Skin }
     }
     return $Results
 }
@@ -476,7 +476,7 @@ try {
             if ($Property) { $Option = $Property }
             $found = Search -Query $Parameter -Property $Option 
 
-            if (-not $found) { throw "No skins found." }
+            if (-not $found) { return Write-Host "No skins found." }
 
             Write-Host "Found skins: "
             $found | % {
