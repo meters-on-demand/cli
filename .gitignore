@@ -1,1 +1,2 @@
-cache.json
+*.json
+*.log

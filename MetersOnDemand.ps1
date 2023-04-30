@@ -34,7 +34,7 @@ param (
 )
 
 # Globals
-$Self = [PSCustomObject]@{ Version = "v1.0.0"; Directory = "$SkinPath\#MonD" }
+$Self = [PSCustomObject]@{ Version = "v1.0.0"; Directory = "#MonD" }
 $Cache = [PSCustomObject]@{ }
 $Removed = "@Backup"
 
@@ -434,6 +434,7 @@ function InstallMonD {
 
     Write-Host $Self
     Write-Host $PSScriptRoot
+    Write-Host $SkinPath
     
 }
 
