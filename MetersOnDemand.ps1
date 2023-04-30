@@ -435,10 +435,48 @@ function ToIteratable {
     return $Members
 }
 
-function InstallMonD {
 
+# https://github.com/ThePoShWolf/Utilities/blob/master/Misc/Set-PathVariable.ps1
+# Added |^$ to filter out empty items in $arrPath
+# Removed the $Scope param and added a static [System.EnvironmentVariableTarget]::User
+function Set-PathVariable {
+    param (
+        [string]$AddPath,
+        [string]$RemovePath
+    )
+
+    $Scope = [System.EnvironmentVariableTarget]::User
+
+    $regexPaths = @()
+    if ($PSBoundParameters.Keys -contains 'AddPath') {
+        $regexPaths += [regex]::Escape($AddPath)
+    }
+    
+    if ($PSBoundParameters.Keys -contains 'RemovePath') {
+        $regexPaths += [regex]::Escape($RemovePath)
+    }
+        
+    $arrPath = [System.Environment]::GetEnvironmentVariable('PATH', $Scope) -split ';'
+    foreach ($path in $regexPaths) {
+        $arrPath = $arrPath | Where-Object { $_ -notMatch "^$path\\?|^$" }
+    }
+    $value = ($arrPath + $addPath) -join ';'
+    [System.Environment]::SetEnvironmentVariable('PATH', $value, $Scope)
+}
+
+function InstallMonD {    
+
+    Write-Host "DEBUG INFORMATION"
+    Write-Host "/////////////////"
+    Write-Host "Self: " -NoNewline
     Write-Host $Self
+    Write-Host "PSScriptRoot: " -NoNewline
     Write-Host $PSScriptRoot
+    Write-Host "SkinPath: " -NoNewline
+    Write-Host $SkinPath
+    Write-Host "/////////////////"
+
+    Write-Host "`nInstalling MonD..."
 
     # Remove trailing \
     $SkinPath = $SkinPath -replace "\\$", ""
@@ -447,11 +485,15 @@ function InstallMonD {
     if (!(Test-Path $SkinPath)) { throw "SkinPath doesn't exist???" }
     if (!(Test-Path $InstallPath)) { New-Item -ItemType Directory -Path $InstallPath }
 
+    Write-Host "`nCopying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
+
     Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath
     Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath
 
-    # TODO: Add $InstallPath to PATH
+    Write-Host "`nAdding '$InstallPath' to PATH"
+    Set-PathVariable -AddPath $InstallPath
 
+    Write-Host "`nSuccessfully installed MonD $($Self.Version)"
 }
 
 # Main body
