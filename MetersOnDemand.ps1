@@ -371,17 +371,20 @@ function Upgrade {
     param (
         [Parameter(Mandatory, Position = 0)]
         [string]
-        $FullName
+        $FullName,
+        [Parameter()]
+        [switch]
+        $Force
     )
 
     $Skin = Get-SkinObject $FullName
 
-    $installed = $Cache.Installed[$Skin.full_name]
+    $installed = $Cache.Installed.($Skin.full_name)
 
-    if (-not $installed) {
+    if (!$installed) {
         throw "$($FullName) is not installed"
     }
-    if (-not $Cache.Updateable[$Skin.full_name]) {
+    if (!$Force -and !($Cache.Updateable.($Skin.full_name))) {
         throw "$($FullName) $($installed) is the latest version"
     }
 
@@ -452,7 +455,7 @@ try {
             if (-not $Parameter) { 
                 throw "Upgrade requires the named parameter -Skin (Position = 1)"
             }
-            Upgrade -FullName $Parameter
+            Upgrade -FullName $Parameter -Force:$Force
             break
         }
         "uninstall" {
