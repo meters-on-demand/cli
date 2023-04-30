@@ -18,6 +18,12 @@ param (
     [Parameter()]
     [string]
     $Property,
+    [Parameter()]
+    [string]
+    $SkinPath,
+    [Parameter()]
+    [switch]
+    $FirstTimeInstall,
     [Alias("v")]
     [Parameter()]
     [switch]
@@ -28,7 +34,7 @@ param (
 )
 
 # Globals
-$Self = [PSCustomObject]@{ Version = "v1.0.0" }
+$Self = [PSCustomObject]@{ Version = "v1.0.0"; Directory = "$SkinPath\#MonD" }
 $Cache = [PSCustomObject]@{ }
 $Removed = "@Backup"
 
@@ -424,8 +430,17 @@ function ToIteratable {
     return $Members
 }
 
+function InstallMonD {
+
+    Write-Host $Self
+    Write-Host $PSScriptRoot
+    
+}
+
 # Main body
 try {
+
+    if ($FirstTimeInstall) { return InstallMonD }
 
     # Commands that do not need the cache
     if ($Version) { return Version }
