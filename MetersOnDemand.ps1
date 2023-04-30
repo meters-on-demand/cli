@@ -303,14 +303,14 @@ function Uninstall {
         $Force
     )
 
-    $installed = $Cache.Installed[$FullName]
+    $installed = $Cache.Installed.$FullName
     if (-not $installed) { 
         if ($Force) { return }
         throw "Skin $FullName is not installed"
     }
 
     $skinPath = $Cache.SkinPath
-    $skinName = $Cache.Skins[$FullName].skin_name
+    $skinName = $Cache.Skins.$FullName.skin_name
 
     $removedDirectory = RemovedDirectory
     $path = "$($skinPath)\$($skinName)"
@@ -321,8 +321,8 @@ function Uninstall {
     Move-Item -Path "$($path)" -Destination $removedDirectory
 
     # Update cache
-    $Cache.Installed.Remove($FullName)
-    $Cache.Updateable.Remove($FullName)
+    $Cache.Installed.psobject.properties.Remove($FullName)
+    $Cache.Updateable.psobject.properties.Remove($FullName)
     Save-Cache $Cache
 
     # Report results
