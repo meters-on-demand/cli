@@ -119,7 +119,7 @@ function Get-SkinObject {
     )
 
     $Skins = $Cache.Skins
-    $Skin = $Skins[$FullName]
+    $Skin = $Skins.$FullName
 
     if (-not $Skin) { throw "No skin named $($FullName) found" }
     return $Skin
@@ -149,16 +149,20 @@ function Install {
         $Force
     )
 
-    $installed = $Cache.Installed[$FullName]
+
+    $installed = $Cache.Installed.$FullName
     if ($installed -and (-not $Force)) {
         throw "$($FullName) is already installed. Use -Force to reinstall."
     }
 
     $Skin = Get-SkinObject -FullName $FullName
     $latest = $Skin.latest_release.tag_name
+
+    $Installed = $Cache.Installed
     if ($installed -ne $latest) {
-        $Cache.Installed[$FullName] = $latest
-        $Cache.Updateable.Remove($FullName)
+        $Installed | Add-Member -MemberType NoteProperty -Name "$FullName" -Value $latest -Force
+        $Cache | Add-Member -MemberType NoteProperty -Name "Installed" -Value $Installed -Force
+        $Cache.Updateable.psobject.properties.Remove($FullName)
         Save-Cache $Cache
     }
 
