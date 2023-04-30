@@ -28,8 +28,8 @@ param (
 )
 
 # Globals
-$Self = @{ Version = "v1.0.0" }
-$Cache = @{ }
+$Self = [PSCustomObject]@{ Version = "v1.0.0" }
+$Cache = [PSCustomObject]@{ }
 $Removed = "@Backup"
 
 # URLs
@@ -182,10 +182,11 @@ function Get-Request {
 }
 
 function Get-Cache {
-    if (!(Test-Path -Path $cacheFile)) { return @{ } }
+    if (!(Test-Path -Path $cacheFile)) { return [PSCustomObject]@{ } }
+
     $filecontent = Get-Content -Path $cacheFile 
-    if (-not $filecontent) { return @{ } }
-    return $filecontent | ConvertFrom-Json -AsHashtable
+    if (-not $filecontent) { return [PSCustomObject]@{ } }
+    return $filecontent | ConvertFrom-Json 
 }
 
 function Update {
@@ -196,10 +197,10 @@ function Update {
     )
 
     $Cache = Get-Cache
-
-    if (!$Force) {
-        $currentDate = Get-Date -Format "MM-dd-yy"
-        if ($Cache.LastChecked -eq $currentDate) { return $Cache }
+    
+    $CurrentDate = Get-Date -Format "MM-dd-yy"
+    if (!$Force -and ($Cache.LastChecked -eq $CurrentDate)) {
+        return $Cache 
     }
 
     $response = Get-Request $skinsAPI
@@ -208,14 +209,18 @@ function Update {
         return $Cache
     }
 
-    $content = $response.Content
-    $Skins = $content | ConvertFrom-Json -AsHashtable
+    $SkinsArray = $response.Content | ConvertFrom-Json
+    # PSCustomObject bullshit
+    $Skins = [PSCustomObject]@{ }
+    $SkinsArray | % {
+        $Skins | Add-Member -MemberType NoteProperty -Name "$($_.full_name)" -Value $_
+    }
 
-    $Cache["Skins"] = @{}
-    $Skins | % { $Cache.Skins[$_.full_name] = $_ }
+    $Cache | Add-Member -MemberType NoteProperty -Name 'Skins' -Value $Skins -Force
+    $Cache | Add-Member -MemberType NoteProperty -Name 'LastChecked' -Value $CurrentDate -Force
 
-    if (-not $Cache.Installed) { $Cache["Installed"] = @{} }
-    if (-not $Cache.Updateable) { $Cache["Updateable"] = @{} }
+    if (-not $Cache.Installed) { $Cache | Add-Member -MemberType NoteProperty -Name 'Installed' -Value ([PSCustomObject] @{ }) }
+    if (-not $Cache.Updateable) { $Cache | Add-Member -MemberType NoteProperty -Name 'Updateable' -Value ([PSCustomObject] @{ }) }
 
     Save-Cache $Cache
     return $Cache
@@ -236,21 +241,31 @@ function Get-InstalledSkins {
     else { throw "Can't find SkinPath in Rainmeter.ini" }
 
     $skinFolders = Get-ChildItem -Path "$($SkinPath)" -Directory 
+
+    $Installed = [PSCustomObject]@{ }
+    $Updateable = [PSCustomObject]@{ }
+    $IteratableSkins = ToIteratable -Object $Cache.Skins
     foreach ($skinFolder in $skinFolders) {
-        foreach ($Entry in $Cache.Skins.GetEnumerator()) {
+        foreach ($Entry in $IteratableSkins) {
             $Skin = $Entry.Value
             if ($Skin.skin_name -notlike $skinFolder.name) { continue }
             $full_name = $Skin.full_name
             $existing = $Cache.Installed[$full_name]
             $latest = $Skin.latest_release.tag_name
             if ($existing) {
-                if ($existing -ne $latest) { $Cache.Updateable[$full_name] = $latest }
+                if ($existing -ne $latest) { 
+                    $Updateable | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
+                }
             }
-            else { $Cache.Installed[$full_name] = $latest }
+            else { 
+                $Installed | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
+            }
         }
     }
 
-    $Cache.SkinPath = $SkinPath
+    $Cache | Add-Member -MemberType NoteProperty -Name 'SkinPath' -Value $SkinPath -Force
+    $Cache | Add-Member -MemberType noteproperty -Name 'Installed' -Value $Installed -Force
+    $Cache | Add-Member -MemberType noteproperty -Name 'Updateable' -Value $Updateable -Force
 
     Save-Cache $Cache
 
@@ -259,7 +274,7 @@ function Get-InstalledSkins {
 function Save-Cache {
     param (
         [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
-        [hashtable]
+        [PSCustomObject]
         $Cache
     )
     $Cache | ConvertTo-Json -Depth 4 | Out-File -FilePath $cacheFile
@@ -388,6 +403,17 @@ function Search {
         if ($Skin[$Property] -match $Query) { $Results += $Skin }
     }
     return $Results
+}
+
+function ToIteratable {
+    param(
+        # Object to convert to iteratable
+        [Parameter(Mandatory, Position = 1)]
+        [pscustomobject]
+        $Object
+    )
+    $Members = $Object.psobject.Members | Where-Object membertype -like 'noteproperty'
+    return $Members
 }
 
 # Main body
