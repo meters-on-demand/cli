@@ -327,6 +327,7 @@ function Uninstall {
 
     # Report results
     Write-Host "Uninstalled $($FullName)"
+    Write-Host "Use 'mond restore $($FullName)' to restore"
 }
 
 function Restore {
@@ -340,7 +341,7 @@ function Restore {
     )
 
     $skinPath = $Cache.SkinPath
-    $skinName = $Cache.Skins[$FullName].skin_name
+    $skinName = $Cache.Skins.$FullName.skin_name
 
     $removedDirectory = RemovedDirectory
     $restorePath = "$($removedDirectory)\$($skinName)"
