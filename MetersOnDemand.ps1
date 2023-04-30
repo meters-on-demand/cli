@@ -34,7 +34,12 @@ param (
 )
 
 # Globals
-$Self = [PSCustomObject]@{ Version = "v1.0.0"; Directory = "#MonD" }
+$Self = [PSCustomObject]@{ 
+    Version     = "v1.0.0";
+    Directory   = "#MonD"; 
+    FileName    = "MetersOnDemand.ps1"; 
+    BatFileName = "mond.bat"
+}
 $Cache = [PSCustomObject]@{ }
 $Removed = "@Backup"
 
@@ -434,8 +439,19 @@ function InstallMonD {
 
     Write-Host $Self
     Write-Host $PSScriptRoot
-    Write-Host $SkinPath
-    
+
+    # Remove trailing \
+    $SkinPath = $SkinPath -replace "\\$", ""
+
+    $InstallPath = "$SkinPath\$($Self.Directory)"
+    if (!(Test-Path $SkinPath)) { throw "SkinPath doesn't exist???" }
+    if (!(Test-Path $InstallPath)) { New-Item -ItemType Directory -Path $InstallPath }
+
+    Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath
+    Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath
+
+    # TODO: Add $InstallPath to PATH
+
 }
 
 # Main body
