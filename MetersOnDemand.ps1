@@ -443,6 +443,10 @@ try {
             Install $Parameter -Force:$Force
             break
         }
+        "list" {
+            $Installed = $Cache.Installed 
+            ToIteratable -Object $Installed | % { Write-Host $_.Name }
+        }
         "upgrade" {
             if ($Skin) { $Parameter = $Skin }
             if (-not $Parameter) { 
