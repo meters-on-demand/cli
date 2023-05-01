@@ -40,7 +40,7 @@ $Self = [PSCustomObject]@{
     FileName    = "MetersOnDemand.ps1"; 
     BatFileName = "mond.bat"
 }
-
+$Cache = $false
 $Removed = "@Backup"
 
 # URLs
@@ -51,6 +51,40 @@ $cacheFile = "$($PSScriptRoot)\cache.json"
 $logFile = "$($PSScriptRoot)\mond.log"
 $skinFile = "$($PSScriptRoot)\skin.rmskin"
 $settingsPath = "$($env:APPDATA)\Rainmeter\Rainmeter.ini"
+
+# If running under PSRM in Rainmeter
+if (!$PSScriptRoot) {
+    if (!$RmApi) { throw "`$PSScriptRoot is not set" }
+    $SkinPath = $($RmApi.VariableStr("SKINSPATH"))
+    $ScriptRoot = "$SkinPath$($Self.Directory)"
+    $cacheFile = "$($ScriptRoot)\cache.json"
+    $logFile = "$($ScriptRoot)\mond.log"
+    $skinFile = "$($ScriptRoot)\skin.rmskin"
+    $settingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))Rainmeter.ini"
+
+    # Write-Host $cacheFile
+    # Write-Host $logFile
+    # Write-Host $skinFile
+    # Write-Host $settingsPath
+    # Write-Host $SkinPath
+
+}
+
+function Update {    
+    if (!$RmApi) { 
+        Write-Host "Use " -NoNewline Gray
+        Write-Host "Update-Cache" -NoNewline -ForegroundColor White
+        Write-Host " to update the cache file."
+        return
+    }
+
+    $parentMeasure = $RmApi.GetMeasureName()
+    $RmApi.Bang("[!PauseMeasure `"$($parentMeasure)`"][!SetOption `"$($parentMeasure)`" UpdateDivider -1]")
+    
+    Write-Host "Updating MonD cache!"
+    Update-Cache
+    return $Self.Version
+}
 
 function Version { Write-Host "MonD $($Self.Version)" -ForegroundColor Blue }
 
