@@ -52,72 +52,71 @@ $logFile = "$($PSScriptRoot)\mond.log"
 $skinFile = "$($PSScriptRoot)\skin.rmskin"
 $settingsPath = "$($env:APPDATA)\Rainmeter\Rainmeter.ini"
 
-function Version { Write-Host "MonD $($Self.Version)" }
+function Version { Write-Host "MonD $($Self.Version)" -ForegroundColor Blue }
 
 function Help {
 
-    Version
-
     $PowerShellVersion = $PSVersionTable.PSVersion
-    if ($PowerShellVersion.Major -lt 7) {
-        Write-Host "You are running PowerShell $($PowerShellVersion) which is outdated. PowerShell 7 is recommended." -ForegroundColor Yellow
+    if ($PowerShellVersion.Major -lt 5) {
+        Write-Host "You are running PowerShell $($PowerShellVersion) which is outdated. PowerShell 5 or 7 is recommended.`n" -ForegroundColor Yellow
     }
 
-    $commands = @(@{
-            Name        = "help"
-            Description = "show this help"
-        }, @{
+    # $skinSig = "[[-Skin] <full_name>]"
+    $skinSig = "[-Skin] <full_name>"
+    $forceSig = "[-Force]"
+
+    $commands = @(
+        [pscustomobject]@{
             Name        = "update"
-            Description = "update the skins list"
-            Parameters  = @(@{
-                    Name        = "skin"
-                    Description = "the full name of the skin to update"
-                }
-            )
-        }, @{
-            Name        = "install"
-            Description = "installs the specified skin"
-            Parameters  = @(@{
-                    Name        = "skin" 
-                    Description = "the full name of the skin to install"
-                })
-        }, @{
-            Name        = "upgrade"
-            Description = "upgrades the specified skin"
-            Parameters  = @(@{
-                    Name        = "skin" 
-                    Description = "the full name of the skin to upgrade"
-                })
-        }, @{
-            Name        = "uninstall"
-            Description = "uninstalls the specified skin"
-            Parameters  = @(@{
-                    Name        = "skin" 
-                    Description = "the full name of the skin to uninstall"
-                })
+            Signature   = "$forceSig"
+            Description = "updates the skins list"
         }, 
-        @{
+        [pscustomobject]@{
+            Name        = "install"
+            Signature   = "$skinSig $forceSig"
+            Description = "installs the specified skin"
+        }, 
+        [pscustomobject]@{
             Name        = "search"
+            Signature   = "[-Query] <keyword> [-Property <property>]"
             Description = "searches the skin list"
-        }, @{
+        }, 
+        [pscustomobject]@{
+            Name        = "upgrade"
+            Signature   = "$skinSig $forceSig"
+            Description = "upgrades the specified skin"
+        }, 
+        [pscustomobject]@{
+            Name        = "uninstall"
+            Signature   = "$skinSig $forceSig"
+            Description = "uninstalls the specified skin"
+        }, 
+        [pscustomobject]@{
             Name        = "version"
+            Signature   = ""
             Description = "prints the MonD version"
+        },
+        [pscustomobject]@{
+            Name        = "help"
+            Signature   = "[-Command]"
+            Description = "show this help"
         }
     )
 
-    Write-Host "List of MonD commands"
+    Write-Host "MonD" -ForegroundColor White -NoNewline
+    Write-Host " $($Self.Version) " -ForegroundColor Blue -NoNewline
+    Write-Host "list of commands`n" -ForegroundColor White
+
     foreach ($command in $commands) {
-        Write-Host "$($command.name)" -ForegroundColor Blue
-        Write-Host "$($command.Description)"
-        if ($command.Parameters) {
-            Write-Host "parameters:" -ForegroundColor Yellow
-            foreach ($parameter in $command.Parameters) {
-                Write-Host "$($parameter.name)" -ForegroundColor Blue
-                Write-Host "$($parameter.Description)"
-            }
-        }
-        Write-Host ""
+        Write-Host "$($command.name) " -ForegroundColor White -NoNewline
+        Write-Host "$($command.signature) " -ForegroundColor Gray
+        Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
+        Write-Host "`n"
     }
+
+    Write-Host "Also check out the MonD wiki! " -NoNewline
+    Write-Host "https://github.com/meters-on-demand/mond-api/wiki" -ForegroundColor Blue -NoNewline
+    Write-Host "`n"
 
 }
 
@@ -458,7 +457,7 @@ function Set-PathVariable {
         
     $arrPath = [System.Environment]::GetEnvironmentVariable('PATH', $Scope) -split ';'
     foreach ($path in $regexPaths) {
-        $arrPath = $arrPath | Where-Object { $_ -notMatch "^$path\\?|^$" }
+        $arrPath = $arrPath | Where-Object { $_ -notMatch "^$path\\?| ^$" }
     }
     $value = ($arrPath + $addPath) -join ';'
     [System.Environment]::SetEnvironmentVariable('PATH', $value, $Scope)
