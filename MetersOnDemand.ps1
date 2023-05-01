@@ -415,6 +415,8 @@ function Search {
     if (-not $Query) { $Query = ".*" }
     if (-not $Property) { $Property = "full_name" }
 
+    Write-Host "Searching for `"$Query`""
+
     $Results = @()
     foreach ($Entry in ToIteratable -Object $Cache.Skins ) {
         $Skin = $Entry.Value
@@ -511,7 +513,16 @@ try {
     Get-InstalledSkins
 
     switch ($Command) {
-        "update" { Write-Host "Cache updated!" }
+        "update" { 
+            if ($Skin) { $Parameter = $Skin }
+            if ($Parameter) { 
+                Write-Host "Use '" -NoNewline -ForegroundColor Gray
+                Write-Host "mond upgrade $Parameter" -ForegroundColor White -NoNewline
+                Write-Host "' to upgrade a skin."
+                return
+            }
+            Write-Host "Cache updated!"
+        }
         "install" {
             if ($Skin) { $Parameter = $Skin }
             if (-not $Parameter) { 
@@ -551,15 +562,17 @@ try {
         "search" {
             if ($Query) { $Parameter = $Query }
             if ($Property) { $Option = $Property }
+
             $found = Search -Query $Parameter -Property $Option 
 
             if (-not $found) { return Write-Host "No skins found." }
 
-            Write-Host "Found skins: "
+            Write-Host "Found $($found.length) skins: `n"
+
             $found | % {
                 Write-Host $_.full_name -ForegroundColor Blue -NoNewline
                 $current = $_.latest_release.tag_name
-                $versionColor = "White"
+                $versionColor = "Gray"
                 $installed = $Cache.Installed.($_.full_name)
                 $updateable = $Cache.Updateable.($_.full_name)
                 if ($installed) {
@@ -571,7 +584,7 @@ try {
                 if ($updateable) { Write-Host " ($($updateable) available)" -ForegroundColor Yellow }
                 else { Write-Host "" }
 
-                Write-Host $_.description
+                Write-Host "$($_.description)`n"
             }
             break
         }
