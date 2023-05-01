@@ -40,7 +40,7 @@ $Self = [PSCustomObject]@{
     FileName    = "MetersOnDemand.ps1"; 
     BatFileName = "mond.bat"
 }
-$Cache = [PSCustomObject]@{ }
+
 $Removed = "@Backup"
 
 # URLs
@@ -159,10 +159,9 @@ function Install {
         $Force
     )
 
-
     $installed = $Cache.Installed.$FullName
     if ($installed -and (-not $Force)) {
-        throw "$($FullName) is already installed. Use -Force to reinstall."
+        return Write-Host "$($FullName) is already installed. Use -Force to reinstall." -ForegroundColor Yellow
     }
 
     $Skin = Get-SkinObject -FullName $FullName
@@ -196,11 +195,33 @@ function Get-Request {
 }
 
 function Get-Cache {
-    if (!(Test-Path -Path $cacheFile)) { return [PSCustomObject]@{ } }
 
-    $filecontent = Get-Content -Path $cacheFile 
-    if (-not $filecontent) { return [PSCustomObject]@{ } }
-    return $filecontent | ConvertFrom-Json 
+    $Cache = [PSCustomObject]@{
+        Skins      = [pscustomobject]@{ };
+        Installed  = [pscustomobject]@{ };
+        Updateable = [pscustomobject]@{ };
+    }
+
+    if (Test-Path -Path $cacheFile) {
+        $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json 
+    }
+
+    if (!$Cache.SkinPath) {
+        if (!(Test-Path -Path $settingsPath)) { 
+            return Write-Host "Can't find Rainmeter.ini. <insert link to wiki>" -ForegroundColor Red
+        }
+        $settingsContent = Get-Content -Path $settingsPath -Raw
+        if ($settingsContent -match 'SkinPath=(.*)') {
+            $path = $Matches[0]
+            $path = $path -replace '^.*=\s?'
+            $path = $path -replace '\\?\s?$'
+            $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value $path -Force
+        }
+        else { throw "Can't find SkinPath in Rainmeter.ini" }
+    }
+
+    return $Cache
+
 }
 
 function Update {
@@ -236,28 +257,20 @@ function Update {
     if (-not $Cache.Installed) { $Cache | Add-Member -MemberType NoteProperty -Name 'Installed' -Value ([PSCustomObject] @{ }) }
     if (-not $Cache.Updateable) { $Cache | Add-Member -MemberType NoteProperty -Name 'Updateable' -Value ([PSCustomObject] @{ }) }
 
-    Save-Cache $Cache
-    return $Cache
+    return Save-Cache $Cache
 }
 
 function Get-InstalledSkins {
+    
+    $SkinPath = $Cache.SkinPath
+    $Installed = $Cache.Installed
+    $Updateable = [PSCustomObject]@{ }
 
-    $Cache = Get-Cache
-
-    $settingsContent = Get-Content -Path $settingsPath -Raw
-
-    if ($settingsContent -match 'SkinPath=(.*)') {
-        $path = $Matches[0]
-        $path = $path -replace '^.*=\s?'
-        $path = $path -replace '\\?\s?$'
-        $SkinPath = $path
+    if (!(Test-Path -Path $SkinPath)) {
+        throw "SkinPath ($SkinPath) does not exist"
     }
-    else { throw "Can't find SkinPath in Rainmeter.ini" }
 
     $skinFolders = Get-ChildItem -Path "$($SkinPath)" -Directory 
-
-    $Installed = [PSCustomObject]@{ }
-    $Updateable = [PSCustomObject]@{ }
     $IteratableSkins = ToIteratable -Object $Cache.Skins
     foreach ($skinFolder in $skinFolders) {
         foreach ($Entry in $IteratableSkins) {
@@ -277,11 +290,10 @@ function Get-InstalledSkins {
         }
     }
 
-    $Cache | Add-Member -MemberType NoteProperty -Name 'SkinPath' -Value $SkinPath -Force
     $Cache | Add-Member -MemberType noteproperty -Name 'Installed' -Value $Installed -Force
     $Cache | Add-Member -MemberType noteproperty -Name 'Updateable' -Value $Updateable -Force
 
-    Save-Cache $Cache
+    $Cache = Save-Cache $Cache
 
 }
 
@@ -292,6 +304,7 @@ function Save-Cache {
         $Cache
     )
     $Cache | ConvertTo-Json -Depth 4 | Out-File -FilePath $cacheFile
+    return $Cache
 }
 
 function RemovedDirectory {
@@ -436,7 +449,6 @@ function ToIteratable {
     return $Members
 }
 
-
 # https://github.com/ThePoShWolf/Utilities/blob/master/Misc/Set-PathVariable.ps1
 # Added |^$ to filter out empty items in $arrPath
 # Removed the $Scope param and added a static [System.EnvironmentVariableTarget]::User
@@ -495,6 +507,7 @@ function InstallMonD {
     Set-PathVariable -AddPath $InstallPath
 
     Write-Host "`nSuccessfully installed MonD $($Self.Version)"
+
 }
 
 # Main body
@@ -507,13 +520,13 @@ try {
     if ($Command -eq "version") { return Version }
     if ($Command -eq "help") { return Help }
 
+    # Create the cache
     if ($Command -eq "update") { $Force = $True }
     $Cache = Update -Force:$Force
-
     Get-InstalledSkins
 
     switch ($Command) {
-        "update" { 
+        "update" {
             if ($Skin) { $Parameter = $Skin }
             if ($Parameter) { 
                 Write-Host "Use '" -NoNewline -ForegroundColor Gray
@@ -599,5 +612,5 @@ try {
 }
 catch {
     $_ | Out-File -FilePath $logFile -Append 
-    Write-Error $_
+    Write-Host $_
 }
