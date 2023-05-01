@@ -159,8 +159,12 @@ function Get-SkinObject {
     param (
         [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
         [string]
-        $FullName
+        $FullName,
+        [Parameter()]
+        [psobject]
+        $Cache
     )
+    if (!$Cache) { $Cache = Update-Cache -SkipInstalled }
 
     $Skins = $Cache.Skins
     $Skin = $Skins.$FullName
@@ -173,14 +177,20 @@ function Download {
     param (
         [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
         [string]
-        $FullName
+        $FullName,
+        [Parameter()]
+        [psobject]
+        $Cache
     )
+    if (!$Cache) { $Cache = Update-Cache -SkipInstalled }
 
-    $Skin = Get-SkinObject $FullName
+    $Skin = Get-SkinObject $FullName -Cache $Cache
 
     Write-Host "Downloading $($Skin.full_name)"
 
     Invoke-WebRequest -Uri $Skin.latest_release.browser_download_url -OutFile $skinFile
+
+    return $skinFile
 }
 
 function Install {
@@ -189,16 +199,20 @@ function Install {
         [string]
         $FullName,
         [Parameter()]
+        [pscustomobject]
+        $Cache,
+        [Parameter()]
         [switch]
         $Force
     )
+    if (!$Cache) { $Cache = Update-Cache }
 
     $installed = $Cache.Installed.$FullName
     if ($installed -and (-not $Force)) {
         return Write-Host "$($FullName) is already installed. Use -Force to reinstall." -ForegroundColor Yellow
     }
 
-    $Skin = Get-SkinObject -FullName $FullName
+    $Skin = Get-SkinObject -FullName $FullName -Cache $Cache
     $latest = $Skin.latest_release.tag_name
 
     $Installed = $Cache.Installed
@@ -206,11 +220,12 @@ function Install {
         $Installed | Add-Member -MemberType NoteProperty -Name "$FullName" -Value $latest -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "Installed" -Value $Installed -Force
         $Cache.Updateable.psobject.properties.Remove($FullName)
-        Save-Cache $Cache
+        $Cache = Save-Cache $Cache
     }
 
-    Download $FullName
+    Download -FullName $FullName -Cache $Cache
     Start-Process -FilePath $skinFile
+
 }
 
 function Get-Request {
@@ -237,7 +252,7 @@ function Get-Cache {
     }
 
     if (Test-Path -Path $cacheFile) {
-        $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json 
+        $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json
     }
 
     if (!$Cache.SkinPath) {
@@ -258,23 +273,29 @@ function Get-Cache {
 
 }
 
-function Update {
+function Update-Cache {
     param (
+        [Parameter()]
+        [switch]
+        $SkipInstalled,
         [Parameter()]
         [switch]
         $Force
     )
+    if ($Cache -and !$Force) { return $Cache }
 
     $Cache = Get-Cache
     
     $CurrentDate = Get-Date -Format "MM-dd-yy"
     if (!$Force -and ($Cache.LastChecked -eq $CurrentDate)) {
+        if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
         return $Cache 
     }
 
     $response = Get-Request $skinsAPI
     if (-not $response) { 
         Write-Host "Couldn't reach API, using cache..." -ForegroundColor Yellow
+        if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
         return $Cache
     }
 
@@ -291,11 +312,18 @@ function Update {
     if (-not $Cache.Installed) { $Cache | Add-Member -MemberType NoteProperty -Name 'Installed' -Value ([PSCustomObject] @{ }) }
     if (-not $Cache.Updateable) { $Cache | Add-Member -MemberType NoteProperty -Name 'Updateable' -Value ([PSCustomObject] @{ }) }
 
+    $Cache = Get-InstalledSkins -Cache $Cache
+
     return Save-Cache $Cache
 }
 
 function Get-InstalledSkins {
-    
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject]
+        $Cache
+    )
+
     $SkinPath = $Cache.SkinPath
     $Installed = $Cache.Installed
     $Updateable = [PSCustomObject]@{ }
@@ -327,7 +355,7 @@ function Get-InstalledSkins {
     $Cache | Add-Member -MemberType noteproperty -Name 'Installed' -Value $Installed -Force
     $Cache | Add-Member -MemberType noteproperty -Name 'Updateable' -Value $Updateable -Force
 
-    $Cache = Save-Cache $Cache
+    return $Cache
 
 }
 
@@ -342,8 +370,13 @@ function Save-Cache {
 }
 
 function RemovedDirectory {
-    $skinPath = $Cache.SkinPath
-    $removedDirectory = "$($skinPath)\$($Removed)"
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath
+    )
+
+    $removedDirectory = "$($SkinPath)\$($Removed)"
     if (-not(Test-Path -Path $removedDirectory)) {
         New-Item -Path $removedDirectory -ItemType Directory
     }
@@ -355,10 +388,14 @@ function Uninstall {
         [Parameter(Mandatory, Position = 0)]
         [string]
         $FullName,
+        [Parameter(Mandatory)]
+        [psobject]
+        $Cache,
         [Parameter()]
         [switch]
         $Force
     )
+    if (!$Cache) { $Cache = Update-Cache }
 
     $installed = $Cache.Installed.$FullName
     if (-not $installed) { 
@@ -369,7 +406,7 @@ function Uninstall {
     $skinPath = $Cache.SkinPath
     $skinName = $Cache.Skins.$FullName.skin_name
 
-    $removedDirectory = RemovedDirectory
+    $removedDirectory = RemovedDirectory -SkinPath $skinPath
     $path = "$($skinPath)\$($skinName)"
     $target = "$($removedDirectory)\$($skinName)"
     if (Test-Path -Path "$($target)") {
@@ -380,7 +417,7 @@ function Uninstall {
     # Update cache
     $Cache.Installed.psobject.properties.Remove($FullName)
     $Cache.Updateable.psobject.properties.Remove($FullName)
-    Save-Cache $Cache
+    $Cache = Save-Cache $Cache
 
     # Report results
     Write-Host "Uninstalled $($FullName)"
@@ -393,14 +430,18 @@ function Restore {
         [string]
         $FullName,
         [Parameter()]
+        [psobject]
+        $Cache,
+        [Parameter()]
         [switch]
         $Force
     )
-
+    if (!$Cache) { $Cache = Update-Cache }
+    
     $skinPath = $Cache.SkinPath
     $skinName = $Cache.Skins.$FullName.skin_name
 
-    $removedDirectory = RemovedDirectory
+    $removedDirectory = RemovedDirectory -SkinPath $skinPath
     $restorePath = "$($removedDirectory)\$($skinName)"
     $restoreTarget = "$($skinPath)\$($skinName)"
     if (-not (Test-Path -Path "$($restorePath)")) {
@@ -418,8 +459,8 @@ function Restore {
     Move-Item -Path "$($restorePath)" -Destination $skinPath -Force
 
     # Update cache
-    Get-InstalledSkins
-    Save-Cache $Cache
+    $Cache = Get-InstalledSkins -Cache $Cache
+    $Cache = Save-Cache $Cache
 
     # Report results
     Write-Host "Restored $($FullName)"
@@ -434,6 +475,7 @@ function Upgrade {
         [switch]
         $Force
     )
+    if (!$Cache) { $Cache = Update-Cache }
 
     $Skin = Get-SkinObject $FullName
 
@@ -446,7 +488,7 @@ function Upgrade {
         throw "$($FullName) $($installed) is the latest version"
     }
 
-    Install -FullName $FullName -Force
+    Install -FullName $FullName -Cache $Cache -Force
 
 }
 
@@ -457,10 +499,15 @@ function Search {
         $Query,
         [Parameter(Position = 1)]
         [string]
-        $Property
+        $Property,
+        [Parameter(Mandatory)]
+        [psobject]
+        $Cache
     )
-    if (-not $Query) { $Query = ".*" }
-    if (-not $Property) { $Property = "full_name" }
+    if (!$Query) { $Query = ".*" }
+    if (!$Property) { $Property = "full_name" }
+
+    if (!$Cache) { $Cache = Update-Cache }
 
     Write-Host "Searching for `"$Query`""
 
@@ -474,7 +521,6 @@ function Search {
 
 function ToIteratable {
     param(
-        # Object to convert to iteratable
         [Parameter(Mandatory, Position = 1)]
         [pscustomobject]
         $Object
@@ -545,6 +591,7 @@ function InstallMonD {
 }
 
 # Main body
+if ($RmApi) { return }
 try {
 
     if ($FirstTimeInstall) { return InstallMonD }
@@ -556,8 +603,7 @@ try {
 
     # Create the cache
     if ($Command -eq "update") { $Force = $True }
-    $Cache = Update -Force:$Force
-    Get-InstalledSkins
+    $Cache = Update-Cache -Force:$Force
 
     switch ($Command) {
         "update" {
@@ -575,7 +621,7 @@ try {
             if (-not $Parameter) { 
                 throw "Install requires the named parameter -Skin (Position = 1)"
             }
-            Install $Parameter -Force:$Force
+            Install -FullName $Parameter -Cache $Cache -Force:$Force
             break
         }
         "list" {
@@ -595,7 +641,7 @@ try {
             if (-not $Parameter) { 
                 throw "Uninstall requires the named parameter -Skin (Position = 1)"
             }
-            Uninstall $Parameter -Force:$Force
+            Uninstall -FullName $Parameter -Cache $Cache -Force:$Force
             break
         }
         "restore" {
@@ -603,14 +649,14 @@ try {
             if (-not $Parameter) { 
                 throw "Restore requires the named parameter -Skin (Position = 1)"
             }
-            Restore $Parameter -Force:$Force
+            Restore -FullName $Parameter -Cache $Cache -Force:$Force
             break
         }
         "search" {
             if ($Query) { $Parameter = $Query }
             if ($Property) { $Option = $Property }
 
-            $found = Search -Query $Parameter -Property $Option 
+            $found = Search -Query $Parameter -Property $Option -Cache $Cache
 
             if (-not $found) { return Write-Host "No skins found." }
 
