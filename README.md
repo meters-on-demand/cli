@@ -40,3 +40,8 @@ help [-Command]
 ```
 
 Also check out the MonD [wiki](https://github.com/meters-on-demand/mond-api/wiki)!
+
+# Credits
+
+- Installer header and GitHub splash background image by [MA SH](https://www.artstation.com/artwork/L36yml)
+
