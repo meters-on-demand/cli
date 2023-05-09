@@ -235,10 +235,11 @@ function Get-Request {
         $Uri
     )
     try {
-        $response = Invoke-WebRequest -Uri $Uri 
+        $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing
         return $response
     }
     catch {
+        Write-Host $_
         return $false
     }
 }
@@ -293,7 +294,7 @@ function Update-Cache {
     }
 
     $response = Get-Request $skinsAPI
-    if (-not $response) { 
+    if (!$response) { 
         Write-Host "Couldn't reach API, using cache..." -ForegroundColor Yellow
         if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
         return $Cache
