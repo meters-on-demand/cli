@@ -672,42 +672,13 @@ function Get-Plugins {
     $files = Get-ChildItem -Path "$RootConfigPath" -Recurse -File -Include *.inc, *.ini
     
     $PP = '^\s*(?i)plugin\s*=\s*(.*)$'
-    
-    $BuiltIn = $(
-        'actiontimer',
-        'advancedcpu',
-        'audiolevel',
-        'coretemp',
-        'fileview',
-        'folderinfo',
-        'inputtext',
-        'itunesplugin',
-        'perfmon',
-        'pingplugin',
-        'quoteplugin',
-        'resmon',
-        'runcommand',
-        'speedfanplugin',
-        'usagemonitor',
-        'win7audioplugin',
-        'windowmessageplugin',
-        'mediakey',
-        'nowplaying',
-        'process',
-        'recyclemanager',
-        'sysinfo',
-        'webparser',
-        'wifistatus'
-    )
-    
+        
     $files | ForEach-Object {
         $lines = $_ | Get-Content
         $lines | ForEach-Object {
             if ($_ -match $PP) {
                 $plugin = "$($Matches[1])".ToLower()
-                if ( $plugin -notin $BuiltIn) {
-                    $plugins[$plugin] = $True
-                }
+                $plugins[$plugin] = $True
             }
         }
     }
@@ -777,11 +748,16 @@ function New-Skin {
     foreach ($plugin in $plugins.Keys) {
         $vault = "$($SkinPath)\@Vault"
         $pluginDirectory = "$($vault)\Plugins\$($plugin)"
-        $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
-        $latest = "$($pluginDirectory)\$($versions[0])"
+        if (!(Test-Path -Path $pluginDirectory)) {
+            Write-Host "Skipping $($plugin), it's either built-in or not installed."
+        }
+        else {
+            $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
+            $latest = "$($pluginDirectory)\$($versions[0])"
 
-        Copy-Item -Path "$($latest)\32bit\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
-        Copy-Item -Path "$($latest)\64bit\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
+            Copy-Item -Path "$($latest)\32bit\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
+            Copy-Item -Path "$($latest)\64bit\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
+        }
     }
     Write-Host "Copied plugins"
 
