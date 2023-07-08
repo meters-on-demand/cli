@@ -61,7 +61,7 @@ param (
     [string]
     $OutFile,
     [Parameter()]
-    [Alias("Directory", "d")]
+    [Alias("OutDir", "Directory", "d")]
     [string]
     $OutDirectory,
     [Parameter()]
