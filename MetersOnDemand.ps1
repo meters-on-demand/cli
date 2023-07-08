@@ -977,9 +977,14 @@ try {
                 Write-Host "You are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n" -ForegroundColor Yellow
             }
 
-            $workingParent = Split-Path -Path $pwd
             $SkinPath = $Cache.SkinPath
-            if (!$SkinPath) { $SkinPath = $workingparent }
+
+            $workingParent = Split-Path -Path $pwd
+            $skinPathsplit = Split-Path -Path $SkinPath 
+
+            if(("$workingParent" -notlike "$($skinPathsplit)*") -and (!$Config)) {
+                throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Config parameter!"
+            }
             
             $workingName = Split-Path -Path $pwd -Leaf
             $RootConfig = $workingName

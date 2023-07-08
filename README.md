@@ -33,8 +33,8 @@ uninstall [-Skin] <full_name> [-Force]
  uninstalls the specified skin
 
 package [-Config] <rootconfig> [-LoadType <> -Load <> -VariableFiles <> -MinimumRainmeter <> -MinimumWindows <> -Author <> -HeaderImage <>]
- Creates an .rmskin package of the specified config, or the current working directory. 
- The data is read from the skins Mond.inc, with optional commandline overrides. 
+ Creates an .rmskin package of the specified config, or the current working directory.
+ The data is read from the skins Mond.inc, with optional commandline overrides.
  Please see https://github.com/meters-on-demand/cli/wiki/Package for documentation.
 
 version
