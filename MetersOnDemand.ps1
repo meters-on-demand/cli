@@ -980,9 +980,7 @@ try {
             $SkinPath = $Cache.SkinPath
 
             $workingParent = Split-Path -Path $pwd
-            $skinPathsplit = Split-Path -Path $SkinPath 
-
-            if(("$workingParent" -notlike "$($skinPathsplit)*") -and (!$Config)) {
+            if(("$workingParent" -notlike "$($SkinPath)*") -and (!$Config)) {
                 throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Config parameter!"
             }
             
