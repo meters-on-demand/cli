@@ -153,7 +153,7 @@ function Help {
         [pscustomobject]@{
             Name        = "package"
             Signature   = "-Config <rootconfig> [-LoadType <> -Load <> -VariableFiles <> -MinimumRainmeter <> -MinimumWindows <> -Author <> -HeaderImage <>]"
-            Description = "Creates an .rmskin package of the specified config, or the current working directory. The data is read from the skins Mond.inc, with optional commandline overrides. Please see https://github.com/meters-on-demand/cli/wiki for documentation of Mond.inc and the overrides."
+            Description = "Creates an .rmskin package of the specified config, or the current working directory. The data is read from the skins Mond.inc, with optional commandline overrides. Please see https://github.com/meters-on-demand/cli/wiki/Package for documentation."
         }, 
         [pscustomobject]@{
             Name        = "version"
@@ -605,14 +605,14 @@ function Get-SkinInfo {
     )
 
     $Overrides = @{
-        Author           = $Author
-        Version          = $PackageVersion
-        LoadType         = $LoadType
-        Load             = $Load
-        VariableFiles    = $VariableFiles
-        MinimumRainmeter = $MinimumRainmeter
-        MinimumWindows   = $MinimumWindows
-        HeaderImage      = $HeaderImage
+        Author           = "$Author"
+        Version          = "$PackageVersion"
+        LoadType         = "$LoadType"
+        Load             = "$Load"
+        VariableFiles    = "$VariableFiles"
+        MinimumRainmeter = "$MinimumRainmeter"
+        MinimumWindows   = "$MinimumWindows"
+        HeaderImage      = "$HeaderImage"
     }
 
     $RMSKIN = @{
@@ -629,11 +629,15 @@ function Get-SkinInfo {
     
     Get-Content -Path "$(Get-MondInc -SkinPath $SkinPath -RootConfig $RootConfig)" | ForEach-Object {
         $s = $_ -split "="
-        $option = "$($s[0])".Trim()
-        if ("$($option)".ToLower() -eq "skinname") {
+        $option = "$($s[0])".Trim().ToLower()
+        if ($option -eq "skinname") {
             $option = "Name"
         }
         $value = "$($s[1])".Trim()
+        if($option -in @("variablefiles", "headerimage")) {
+            $value = $value -replace "#@#\\", "$($RootConfig)\@Resources\"
+            $value = $value -replace "#@#", "$($RootConfig)\@Resources\"
+        }
         if ($RMSKIN[$option]) {
             $RMSKIN[$option] = $value
         }
