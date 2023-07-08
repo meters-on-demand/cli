@@ -23,6 +23,9 @@ param (
     $SkinPath,
     [Parameter()]
     [string]
+    $Config,
+    [Parameter()]
+    [string]
     $SettingsPath,
     [Parameter()]
     [switch]
@@ -38,11 +41,13 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version     = "v1.2.0";
-    Directory   = "#MonD"; 
-    FileName    = "MetersOnDemand.ps1"; 
-    BatFileName = "mond.bat"
+    Version       = "v1.2.0";
+    Directory     = "#MonD"; 
+    FileName      = "MetersOnDemand.ps1"; 
+    BatFileName   = "mond.bat"
+    TempDirectory = "#MonD\temp"
 }
+
 $Cache = $false
 $Removed = "@Backup"
 
@@ -119,6 +124,11 @@ function Help {
             Name        = "uninstall"
             Signature   = "$skinSig $forceSig"
             Description = "uninstalls the specified skin"
+        }, 
+        [pscustomobject]@{
+            Name        = "package"
+            Signature   = "-Config <ROOT CONFIG NAME>"
+            Description = "creates an .rmskin package of the specified config, or the current working directory"
         }, 
         [pscustomobject]@{
             Name        = "version"
@@ -525,6 +535,266 @@ function ToIteratable {
     return $Members
 }
 
+function Get-MondInc {
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath,
+        [Parameter(Mandatory)]
+        [string]
+        $RootConfig
+    )
+    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
+
+    if (Test-Path "$($RootConfigPath)\mond.inc") {
+        return "$($RootConfigPath)\mond.inc"
+    }
+    if (Test-Path "$($RootConfigPath)\@Resources\mond.inc") {
+        return "$($RootConfigPath)\@Resources\mond.inc"
+    }
+    throw "Couldn't find MonD.inc"
+}
+
+function Clear-Temp {
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath
+    )
+    $temp = "$($SkinPath)\$($Self.TempDirectory)"
+
+    if (!(Test-Path -Path "$temp")) {
+        New-Item -ItemType Directory -Path $temp
+    }
+    Remove-Item -Path "$temp\*" -Recurse
+}
+
+function Get-SkinInfo {
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath,
+        [Parameter(Mandatory)]
+        [string]
+        $RootConfig
+    )
+
+    $RMSKIN = @{
+        Name             = $RootConfig
+        Author           = Split-Path -Path $env:USERPROFILE -Leaf
+        Version          = $True
+        LoadType         = $True
+        Load             = $True
+        VariableFiles    = $True
+        MinimumRainmeter = "4.5.17"
+        MinimumWindows   = "5.1"
+        HeaderImage      = $True
+    }
+    
+    Get-Content -Path "$(Get-MondInc -SkinPath $SkinPath -RootConfig $RootConfig)" | ForEach-Object {
+        $s = $_ -split "="
+        $option = "$($s[0])".Trim()
+        if ("$($option)".ToLower() -eq "skinname") {
+            $option = "Name"
+        }
+        $value = "$($s[1])".Trim()
+        if ($RMSKIN[$option]) {
+            $RMSKIN[$option] = $value
+        }
+    }
+
+    return $RMSKIN
+}
+
+function Get-Plugins { 
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath,
+        [Parameter(Mandatory)]
+        [string]
+        $RootConfig
+    )
+    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
+
+    $plugins = @{}
+    
+    $files = Get-ChildItem -Path $RootConfigPath -Recurse -File -Include *.inc, *.ini
+    
+    $PP = '^\s*(?i)plugin\s*=\s*(.*)$'
+    
+    $BuiltIn = $(
+        'actiontimer',
+        'advancedcpu',
+        'audiolevel',
+        'coretemp',
+        'fileview',
+        'folderinfo',
+        'inputtext',
+        'itunesplugin',
+        'perfmon',
+        'pingplugin',
+        'quoteplugin',
+        'resmon',
+        'runcommand',
+        'speedfanplugin',
+        'usagemonitor',
+        'win7audioplugin',
+        'windowmessageplugin',
+        'mediakey',
+        'nowplaying',
+        'process',
+        'recyclemanager',
+        'sysinfo',
+        'webparser',
+        'wifistatus'
+    )
+    
+    $files | ForEach-Object {
+        $lines = $_ | Get-Content
+        $lines | ForEach-Object {
+            if ($_ -match $PP) {
+                $plugin = "$($Matches[1])".ToLower()
+                if ( $plugin -notin $BuiltIn) {
+                    $plugins[$plugin] = $True
+                }
+            }
+        }
+    }
+
+    return $plugins
+}
+
+function New-Skin {
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath,
+        [Parameter(Mandatory)]
+        [string]
+        $SettingsPath,
+        [Parameter(Mandatory)]
+        [string]
+        $RootConfig
+    )
+
+    # $RootConfigPath = "$($SkinPath)\$($RootConfig)"
+    Write-Host "Getting SkinInfo"
+    $RMSKIN = Get-SkinInfo -SkinPath $SkinPath -RootConfig $RootConfig
+    Write-Host "Got SkinInfo"
+
+    Write-Host "Getting plugins"
+    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig $RootConfig
+    Write-Host "Got plugins"
+
+    # Temp path
+    Write-Host "Clearing temp"
+    $temp = "$($SkinPath)\$($Self.TempDirectory)"
+    Clear-Temp -SkinPath $SkinPath
+    Write-Host "Cleared temp"
+
+    # Create RMSKIN.ini
+    $ini = "[rmskin]"
+    Write-Host "Generating [rmskin]"
+    foreach ($option in $RMSKIN.GetEnumerator()) {
+        if ("$($option.Name)".ToLower() -ne "headerimage") {
+            $ini += "`n$($option.Name)=$($option.Value)"
+        }
+    }
+    $ini | Out-File -FilePath "$($temp)\RMSKIN.ini"
+
+    # Copy the header image
+    $header = $RMSKIN.HeaderImage
+    if ($header -match "^$RootConfig") {
+        $header = "$($SkinPath)\$($header)"
+    }
+    Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
+
+    # Copy the skin
+    $__ = New-Item -ItemType Directory -Path "$($temp)\Skins"
+    $__ = New-Item -ItemType Directory -Path "$($temp)\Skins\$($RootConfig)"
+    Copy-Item -Path "$($pwd)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $exclude -Recurse
+
+    # Copy the plugins
+    $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins"
+    $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\32bit"
+    $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\64bit"
+    Write-Host "Copying plugins"
+    foreach ($plugin in $plugins.Keys) {
+        $vault = "$($SkinPath)\@Vault"
+        $pluginDirectory = "$($vault)\Plugins\$($plugin)"
+        $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
+        $latest = "$($pluginDirectory)\$($versions[0])"
+
+        Copy-Item -Path "$($latest)\32bit\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
+        Copy-Item -Path "$($latest)\64bit\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
+    }
+    Write-Host "Copied plugins"
+
+    # Copy the layout
+    Write-Host "Copying layout"
+    if ("$($RMSKIN.LoadType)".ToLower() -eq "layout") {
+        $layout = "$($SettingsPath)\Layouts\$($RootConfig)"
+        if (!(Test-Path -Path $layout)) {
+            throw "Layout doesn't exist" 
+        }
+        $__ = New-Item -ItemType Directory -Path "$($temp)\Layouts"
+        Copy-Item -Path $layout -Recurse -Destination "$($temp)\Layouts"
+    }
+    Write-Host "Copied layout"
+
+    Write-Host "Archiving..."
+    $archive = "$($temp)\$($RootConfig) $($RMSKIN.Version).zip"
+    Compress-Archive -CompressionLevel NoCompression -Path "$($temp)\*" -DestinationPath $archive
+    Write-Host "Archived!"
+
+    Write-Host "Appending archive size in bytes"
+    Add-RMfooter -Target $archive
+    Write-Host "Skin packaged!" -ForegroundColor Green
+
+}
+
+function Add-RMfooter {
+    param (
+        [Parameter()]
+        [string]
+        $Target
+    )
+
+    $AsByteStream = $True
+    if ($PSVersionTable.PSVersion.Major -lt 6) {
+        $AsByteStream = $False
+    }    
+
+    # Yoinked from https://github.com/brianferguson/auto-rmskin-package/blob/master/.github/workflows/release.yml
+    Write-Output "Writing footer..."
+    $size = [long](Get-Item $Target).length
+    $size_bytes = [System.BitConverter]::GetBytes($size)
+    if ($AsByteStream) {
+        Add-Content -Path $Target -Value $size_bytes -AsByteStream
+    }
+    else {
+        Add-Content -Path $Target -Value $size_bytes -Encoding Byte
+    }
+
+    $flags = [byte]0
+
+    if ($AsByteStream) {
+        Add-Content -Path $Target -Value $flags -AsByteStream
+    }
+    else {
+        Add-Content -Path $Target -Value $flags -Encoding Byte
+    }
+
+    $rmskin = [string]"RMSKIN`0"
+    Add-Content -Path $Target -Value $rmskin -NoNewLine -Encoding ASCII
+
+    Write-Output "Changing .zip to .rmskin"
+    Rename-Item -Path $Target -NewName ([io.path]::ChangeExtension($Target, '.rmskin'))
+    $Target = $Target.Replace(".zip", ".rmskin")
+    Write-Output "Packaged $($Target)"
+}
+
 # https://github.com/ThePoShWolf/Utilities/blob/master/Misc/Set-PathVariable.ps1
 # Added |^$ to filter out empty items in $arrPath
 # Removed the $Scope param and added a static [System.EnvironmentVariableTarget]::User
@@ -655,6 +925,20 @@ try {
             }
             Restore -FullName $Parameter -Cache $Cache -Force:$Force
             break
+        }
+        "package" {
+            $PowerShellVersion = $PSVersionTable.PSVersion
+            if ($PowerShellVersion.Major -lt 5) {
+                Write-Host "You are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n" -ForegroundColor Yellow
+            }
+
+            $workingParent = Split-Path -Path $pwd
+            $workingName = Split-Path -Path $pwd -Leaf
+            $RootConfig = $workingName
+            if ($Config) { $RootConfig = $Config }
+            if (!$Cache.SkinPath) { $SkinPath = $Cache.SkinPath } 
+            else { $SkinPath = $workingParent }
+            New-Skin -SkinPath $SkinPath -RootConfig $RootConfig -SettingsPath $Cache.SettingsPath
         }
         "search" {
             if ($Query) { $Parameter = $Query }
