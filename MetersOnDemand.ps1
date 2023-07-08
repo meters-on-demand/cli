@@ -53,6 +53,9 @@ param (
     [string]
     $PackageVersion,
     [Parameter()]
+    [string]
+    $Output,
+    [Parameter()]
     [switch]
     $FirstTimeInstall,
     [Alias("v")]
@@ -613,12 +616,13 @@ function Get-SkinInfo {
         MinimumRainmeter = "$MinimumRainmeter"
         MinimumWindows   = "$MinimumWindows"
         HeaderImage      = "$HeaderImage"
+        Output           = "$Output"
     }
 
     $RMSKIN = @{
         Name             = $RootConfig
         Author           = Split-Path -Path $env:USERPROFILE -Leaf
-        Version          = $False
+        Version          = $null
         LoadType         = $False
         Load             = $False
         VariableFiles    = $False
@@ -774,7 +778,14 @@ function New-Skin {
     Write-Host "Copied layout"
 
     Write-Host "Archiving..."
-    $filename = "$($RootConfig) $($RMSKIN.Version).rmskin"
+    $filename = "$($RootConfig)"
+    if ($RMSKIN.Version) { $filename += "$($RMSKIN.Version)" }
+    $filename += ".rmskin"
+
+    if($Output) {
+        $filename = ($Output -replace ".rmskin$", "") + ".rmskin"
+    }
+
     $archive = "$($temp)\skin.zip"
     Compress-Archive -CompressionLevel Optimal -Path "$($temp)\*" -DestinationPath $archive
     Write-Host "Archived!"
