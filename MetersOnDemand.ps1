@@ -966,13 +966,13 @@ try {
                 Write-Host "You are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n" -ForegroundColor Yellow
             }
 
-
             $workingParent = Split-Path -Path $pwd
+            $SkinPath = $Cache.SkinPath
+            if (!$SkinPath) { $SkinPath = $workingparent }
+            
             $workingName = Split-Path -Path $pwd -Leaf
             $RootConfig = $workingName
             if ($Config) { $RootConfig = $Config }
-            if (!$Cache.SkinPath) { $SkinPath = $Cache.SkinPath } 
-            else { $SkinPath = $workingParent }
 
             Write-Host "packaging $RootConfig"
 
