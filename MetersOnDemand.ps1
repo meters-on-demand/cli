@@ -618,33 +618,33 @@ function Get-SkinInfo {
     $RMSKIN = @{
         Name             = $RootConfig
         Author           = Split-Path -Path $env:USERPROFILE -Leaf
-        Version          = $True
-        LoadType         = $True
-        Load             = $True
-        VariableFiles    = $True
+        Version          = $False
+        LoadType         = $False
+        Load             = $False
+        VariableFiles    = $False
         MinimumRainmeter = "4.5.17"
         MinimumWindows   = "5.1"
-        HeaderImage      = $True
+        HeaderImage      = $False
     }
     
-    Get-Content -Path "$(Get-MondInc -SkinPath $SkinPath -RootConfig $RootConfig)" | ForEach-Object {
+    Get-Content -Path "$(Get-MondInc -SkinPath $SkinPath -RootConfig "$RootConfig")" | ForEach-Object {
         $s = $_ -split "="
         $option = "$($s[0])".Trim().ToLower()
         if ($option -eq "skinname") {
             $option = "Name"
         }
         $value = "$($s[1])".Trim()
-        if($option -in @("variablefiles", "headerimage")) {
+        if ($option -in @("variablefiles", "headerimage")) {
             $value = $value -replace "#@#\\", "$($RootConfig)\@Resources\"
             $value = $value -replace "#@#", "$($RootConfig)\@Resources\"
         }
-        if ($RMSKIN[$option]) {
+        if ($option -in $RMSKIN.Keys) {
             $RMSKIN[$option] = $value
         }
     }
 
     foreach ($option in $Overrides.GetEnumerator()) {
-        if($option.Value) {
+        if ($option.Value) {
             $RMSKIN[$option.Name] = $option.Value
         }
     }
@@ -665,7 +665,7 @@ function Get-Plugins {
 
     $plugins = @{}
     
-    $files = Get-ChildItem -Path $RootConfigPath -Recurse -File -Include *.inc, *.ini
+    $files = Get-ChildItem -Path "$RootConfigPath" -Recurse -File -Include *.inc, *.ini
     
     $PP = '^\s*(?i)plugin\s*=\s*(.*)$'
     
@@ -724,13 +724,15 @@ function New-Skin {
         $RootConfig
     )
 
-    # $RootConfigPath = "$($SkinPath)\$($RootConfig)"
+    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
+    Write-Host "ROOTCONFIGPATH = $RootConfigPath"
+
     Write-Host "Getting SkinInfo"
-    $RMSKIN = Get-SkinInfo -SkinPath $SkinPath -RootConfig $RootConfig
+    $RMSKIN = Get-SkinInfo -SkinPath $SkinPath -RootConfig "$RootConfig"
     Write-Host "Got SkinInfo"
 
     Write-Host "Getting plugins"
-    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig $RootConfig
+    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig "$RootConfig"
     Write-Host "Got plugins"
 
     # Temp path
@@ -743,7 +745,7 @@ function New-Skin {
     $ini = "[rmskin]"
     Write-Host "Generating [rmskin]"
     foreach ($option in $RMSKIN.GetEnumerator()) {
-        if ("$($option.Name)".ToLower() -ne "headerimage") {
+        if (("$($option.Name)".ToLower() -ne "headerimage") -and ($option.Value)) {
             $ini += "`n$($option.Name)=$($option.Value)"
         }
     }
@@ -754,12 +756,14 @@ function New-Skin {
     if ($header -match "^$RootConfig") {
         $header = "$($SkinPath)\$($header)"
     }
-    Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
+    if ($header) {
+        Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
+    }
 
     # Copy the skin
     $__ = New-Item -ItemType Directory -Path "$($temp)\Skins"
     $__ = New-Item -ItemType Directory -Path "$($temp)\Skins\$($RootConfig)"
-    Copy-Item -Path "$($pwd)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $exclude -Recurse
+    Copy-Item -Path "$($RootConfigPath)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $exclude -Recurse
 
     # Copy the plugins
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins"
@@ -781,22 +785,26 @@ function New-Skin {
     Write-Host "Copying layout"
     if ("$($RMSKIN.LoadType)".ToLower() -eq "layout") {
         $layout = "$($SettingsPath)\Layouts\$($RootConfig)"
-        if (!(Test-Path -Path $layout)) {
+        if (!(Test-Path -Path "$layout")) {
             throw "Layout doesn't exist" 
         }
         $__ = New-Item -ItemType Directory -Path "$($temp)\Layouts"
-        Copy-Item -Path $layout -Recurse -Destination "$($temp)\Layouts"
+        Copy-Item -Path "$layout" -Recurse -Destination "$($temp)\Layouts"
     }
     Write-Host "Copied layout"
 
     Write-Host "Archiving..."
-    $archive = "$($temp)\$($RootConfig) $($RMSKIN.Version).zip"
+    $filename = "$($RootConfig) $($RMSKIN.Version).rmskin"
+    $archive = "$($temp)\skin.zip"
     Compress-Archive -CompressionLevel NoCompression -Path "$($temp)\*" -DestinationPath $archive
     Write-Host "Archived!"
 
     Write-Host "Appending archive size in bytes"
     Add-RMfooter -Target $archive
     Write-Host "Skin packaged!" -ForegroundColor Green
+
+    Move-Item -Path "$($temp)\skin.rmskin" -Destination "$($env:USERPROFILE)\Desktop\$($filename)" -Force
+    Write-Host "$($filename) moved to desktop." -ForegroundColor Blue
 
 }
 
@@ -890,7 +898,7 @@ function InstallMonD {
     $SettingsPath = $SettingsPath -replace "\\$", ""
 
     $InstallPath = "$SkinPath\$($Self.Directory)"
-    if (!(Test-Path $SkinPath)) { throw "SkinPath doesn't exist???" }
+    if (!(Test-Path $SkinPath)) { throw "SkinPath ($($SkinPath)) doesn't exist???" }
     if (!(Test-Path $InstallPath)) { New-Item -ItemType Directory -Path $InstallPath }
 
     Write-Host "`nCreating the cache"
@@ -978,13 +986,17 @@ try {
                 Write-Host "You are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n" -ForegroundColor Yellow
             }
 
+
             $workingParent = Split-Path -Path $pwd
             $workingName = Split-Path -Path $pwd -Leaf
             $RootConfig = $workingName
             if ($Config) { $RootConfig = $Config }
             if (!$Cache.SkinPath) { $SkinPath = $Cache.SkinPath } 
             else { $SkinPath = $workingParent }
-            New-Skin -SkinPath $SkinPath -RootConfig $RootConfig -SettingsPath $Cache.SettingsPath
+
+            Write-Host "packaging $RootConfig"
+
+            New-Skin -SkinPath $SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath
         }
         "search" {
             if ($Query) { $Parameter = $Query }

@@ -11,3 +11,5 @@ Author=Reisir
 ProfilePicture=https://avatars.githubusercontent.com/u/93496808
 Description=Meters on Demand, the Rainmeter package manager
 String=Meters on Demand
+
+Version=v1.2.0
