@@ -617,6 +617,7 @@ function Get-SkinInfo {
         MinimumWindows   = "$MinimumWindows"
         HeaderImage      = "$HeaderImage"
         Output           = "$Output"
+        Ignore           = $Ignore
     }
 
     $RMSKIN = @{
@@ -629,6 +630,7 @@ function Get-SkinInfo {
         MinimumRainmeter = "4.5.17"
         MinimumWindows   = "5.1"
         HeaderImage      = $False
+        Ignore           = ""
     }
 
     $mondinc = Get-MondInc -SkinPath $SkinPath -RootConfig "$RootConfig"
@@ -723,8 +725,9 @@ function New-Skin {
     # Create RMSKIN.ini
     $ini = "[rmskin]"
     Write-Host "Generating [rmskin]"
+    $ignoredOptions = @("ignore", "headerimage")
     foreach ($option in $RMSKIN.GetEnumerator()) {
-        if (("$($option.Name)".ToLower() -ne "headerimage") -and ($option.Value)) {
+        if (("$($option.Name)".ToLower() -notin $ignoredOptions) -and ($option.Value)) {
             $ini += "`n$($option.Name)=$($option.Value)"
         }
     }
@@ -742,6 +745,12 @@ function New-Skin {
     # Copy the skin
     $__ = New-Item -ItemType Directory -Path "$($temp)\Skins"
     $__ = New-Item -ItemType Directory -Path "$($temp)\Skins\$($RootConfig)"
+
+    # Exclude files
+    $exclude = @(".git", ".gitignore")
+    if ($RMSKIN.Ignore) {
+        "$($RMSKIN.Ignore)" -split "\|" | % { $exclude += "$($_)".Trim() }
+    }
     Copy-Item -Path "$($RootConfigPath)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $exclude -Recurse
 
     # Copy the plugins
@@ -782,7 +791,7 @@ function New-Skin {
     if ($RMSKIN.Version) { $filename += "$($RMSKIN.Version)" }
     $filename += ".rmskin"
 
-    if($Output) {
+    if ($Output) {
         $filename = ($Output -replace ".rmskin$", "") + ".rmskin"
     }
 
@@ -980,7 +989,7 @@ try {
             $SkinPath = $Cache.SkinPath
 
             $workingParent = Split-Path -Path $pwd
-            if(("$workingParent" -notlike "$($SkinPath)*") -and (!$Config)) {
+            if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Config)) {
                 throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Config parameter!"
             }
             
