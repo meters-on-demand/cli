@@ -22,6 +22,9 @@ param (
     [string]
     $SkinPath,
     [Parameter()]
+    [string]
+    $SettingsPath,
+    [Parameter()]
     [switch]
     $FirstTimeInstall,
     [Alias("v")]
@@ -35,7 +38,7 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version     = "v1.1.0";
+    Version     = "v1.2.0";
     Directory   = "#MonD"; 
     FileName    = "MetersOnDemand.ps1"; 
     BatFileName = "mond.bat"
@@ -50,29 +53,21 @@ $skinsAPI = "https://mond.amv.tools/skins"
 $cacheFile = "$($PSScriptRoot)\cache.json"
 $logFile = "$($PSScriptRoot)\mond.log"
 $skinFile = "$($PSScriptRoot)\skin.rmskin"
-$settingsPath = "$($env:APPDATA)\Rainmeter\Rainmeter.ini"
 
 # If running under PSRM in Rainmeter
-if (!$PSScriptRoot) {
-    if (!$RmApi) { throw "`$PSScriptRoot is not set" }
+if ($RmApi) {
     $SkinPath = $($RmApi.VariableStr("SKINSPATH"))
     $ScriptRoot = "$SkinPath$($Self.Directory)"
     $cacheFile = "$($ScriptRoot)\cache.json"
     $logFile = "$($ScriptRoot)\mond.log"
     $skinFile = "$($ScriptRoot)\skin.rmskin"
-    $settingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))Rainmeter.ini"
-
-    # Write-Host $cacheFile
-    # Write-Host $logFile
-    # Write-Host $skinFile
-    # Write-Host $settingsPath
-    # Write-Host $SkinPath
-
+    $SettingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))"
 }
+if ((!$RmApi) -and !$PSScriptRoot) { throw "`$PSScriptRoot is not set???" }
 
-function Update {    
-    if (!$RmApi) { 
-        Write-Host "Use " -NoNewline Gray
+function Update {
+    if (!$RmApi) {
+        Write-Host "Use " -NoNewline
         Write-Host "Update-Cache" -NoNewline -ForegroundColor White
         Write-Host " to update the cache file."
         return
@@ -245,7 +240,6 @@ function Get-Request {
 }
 
 function Get-Cache {
-
     $Cache = [PSCustomObject]@{
         Skins      = [pscustomobject]@{ };
         Installed  = [pscustomobject]@{ };
@@ -257,10 +251,11 @@ function Get-Cache {
     }
 
     if (!$Cache.SkinPath) {
-        if (!(Test-Path -Path $settingsPath)) { 
+        if (!(Test-Path -Path "$($SettingsPath)\Rainmeter.ini")) { 
             return Write-Host "Can't find Rainmeter.ini. <insert link to wiki>" -ForegroundColor Red
         }
-        $settingsContent = Get-Content -Path $settingsPath -Raw
+        $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value $SettingsPath -Force
+        $settingsContent = Get-Content -Path "$($SettingsPath)\Rainmeter.ini" -Raw
         if ($settingsContent -match 'SkinPath=(.*)') {
             $path = $Matches[0]
             $path = $path -replace '^.*=\s?'
@@ -568,23 +563,31 @@ function InstallMonD {
     Write-Host $PSScriptRoot
     Write-Host "SkinPath: " -NoNewline
     Write-Host $SkinPath
+    Write-Host "SettingsPath: " -NoNewline
+    Write-Host $SettingsPath
     Write-Host "/////////////////"
 
     Write-Host "`nInstalling MonD..."
 
     # Remove trailing \
     $SkinPath = $SkinPath -replace "\\$", ""
+    $SettingsPath = $SettingsPath -replace "\\$", ""
 
     $InstallPath = "$SkinPath\$($Self.Directory)"
     if (!(Test-Path $SkinPath)) { throw "SkinPath doesn't exist???" }
     if (!(Test-Path $InstallPath)) { New-Item -ItemType Directory -Path $InstallPath }
 
-    Write-Host "`nCopying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
+    Write-Host "`nCreating the cache"
+    $Cache = Update-Cache -Force 
+    $Cache = Save-Cache -Cache $cache
 
-    Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath
-    Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath
+    Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
 
-    Write-Host "`nAdding '$InstallPath' to PATH"
+    Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath -Force
+    Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath -Force
+    Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
+
+    Write-Host "Adding '$InstallPath' to PATH"
     Set-PathVariable -AddPath $InstallPath
 
     Write-Host "`nSuccessfully installed MonD $($Self.Version)"
