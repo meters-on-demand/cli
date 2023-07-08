@@ -16,4 +16,4 @@ LoadType=Skin
 Load=Meters on Demand\Installer.ini
 Version=v1.2.0
 HeaderImage=#@#mond.bmp
-Ignore=cache.json | mond.log
+Exclude=cache.json | mond.log

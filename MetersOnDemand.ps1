@@ -66,7 +66,7 @@ param (
     $OutDirectory,
     [Parameter()]
     [string]
-    $Ignore,
+    $Exclude,
     [Parameter()]
     [switch]
     $FirstTimeInstall,
@@ -637,7 +637,7 @@ function Get-SkinInfo {
         MinimumRainmeter = "$MinimumRainmeter"
         MinimumWindows   = "$MinimumWindows"
         HeaderImage      = "$HeaderImage"
-        Ignore           = "$Ignore"
+        Exclude          = "$Exclude"
     }
 
     $RMSKIN = @{
@@ -651,7 +651,7 @@ function Get-SkinInfo {
         MinimumRainmeter = "4.5.17"
         MinimumWindows   = "5.1"
         HeaderImage      = $False
-        Ignore           = ""
+        Exclude          = ""
     }
 
     $mondinc = Get-MondInc -SkinPath $SkinPath -RootConfig "$RootConfig"
@@ -768,11 +768,11 @@ function New-Skin {
     $__ = New-Item -ItemType Directory -Path "$($temp)\Skins\$($RootConfig)"
 
     # Exclude files
-    $exclude = @(".git", ".gitignore")
-    if ($RMSKIN.Ignore) {
-        "$($RMSKIN.Ignore)" -split "\|" | % { $exclude += "$($_)".Trim() }
+    $excluded = @(".git", ".gitignore")
+    if ($RMSKIN.Exclude) {
+        "$($RMSKIN.Exclude)" -split ",|\|" | % { $excluded += "$($_)".Trim() }
     }
-    Copy-Item -Path "$($RootConfigPath)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $exclude -Recurse
+    Copy-Item -Path "$($RootConfigPath)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $excluded -Recurse
 
     # Copy the plugins
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins"
@@ -832,7 +832,7 @@ function New-Skin {
     }
 
     # Override entire output path
-    if($OutPath) {
+    if ($OutPath) {
         $dir = Split-Path $OutPath
         $filename = ("$(Split-Path $OutPath -Leaf)" -replace ".rmskin$", "") + ".rmskin"
     }
