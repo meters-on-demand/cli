@@ -776,7 +776,7 @@ function New-Skin {
     Write-Host "Archiving..."
     $filename = "$($RootConfig) $($RMSKIN.Version).rmskin"
     $archive = "$($temp)\skin.zip"
-    Compress-Archive -CompressionLevel NoCompression -Path "$($temp)\*" -DestinationPath $archive
+    Compress-Archive -CompressionLevel Optimal -Path "$($temp)\*" -DestinationPath $archive
     Write-Host "Archived!"
 
     Write-Host "Appending archive size in bytes"
