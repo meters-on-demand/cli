@@ -791,7 +791,7 @@ function New-Skin {
 
     Write-Host "Archiving..."
     $filename = "$($RootConfig)"
-    if ($RMSKIN.Version) { $filename += "$($RMSKIN.Version)" }
+    if ($RMSKIN.Version) { $filename += " $($RMSKIN.Version)" }
     $filename += ".rmskin"
 
     if ($Output) {
