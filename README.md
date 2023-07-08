@@ -46,6 +46,15 @@ help [-Command]
 
 Also check out the MonD [wiki](https://github.com/meters-on-demand/mond-api/wiki)!
 
+# TO-DO:
+
+- [ ] Packager skin that can
+  - Take all of the information with the GUI 
+  - Read existing .rmskins by drag + drop
+  - Create mond.inc, "save" the options
+  - Read mond.inc and autofill the GUI
+  - Package skins
+
 # Credits
 
 - Installer header and GitHub splash background image by [MA SH](https://www.artstation.com/artwork/L36yml)
