@@ -577,7 +577,7 @@ function Get-MondInc {
     if (Test-Path "$($RootConfigPath)\@Resources\mond.inc") {
         return "$($RootConfigPath)\@Resources\mond.inc"
     }
-    throw "Couldn't find MonD.inc"
+    return $False
 }
 
 function Clear-Temp {
@@ -626,20 +626,24 @@ function Get-SkinInfo {
         MinimumWindows   = "5.1"
         HeaderImage      = $False
     }
+
+    $mondinc = Get-MondInc -SkinPath $SkinPath -RootConfig "$RootConfig"
     
-    Get-Content -Path "$(Get-MondInc -SkinPath $SkinPath -RootConfig "$RootConfig")" | ForEach-Object {
-        $s = $_ -split "="
-        $option = "$($s[0])".Trim().ToLower()
-        if ($option -eq "skinname") {
-            $option = "Name"
-        }
-        $value = "$($s[1])".Trim()
-        if ($option -in @("variablefiles", "headerimage")) {
-            $value = $value -replace "#@#\\", "$($RootConfig)\@Resources\"
-            $value = $value -replace "#@#", "$($RootConfig)\@Resources\"
-        }
-        if ($option -in $RMSKIN.Keys) {
-            $RMSKIN[$option] = $value
+    if ($mondinc) {
+        Get-Content -Path $mondinc | ForEach-Object {
+            $s = $_ -split "="
+            $option = "$($s[0])".Trim().ToLower()
+            if ($option -eq "skinname") {
+                $option = "Name"
+            }
+            $value = "$($s[1])".Trim()
+            if ($option -in @("variablefiles", "headerimage")) {
+                $value = $value -replace "#@#\\", "$($RootConfig)\@Resources\"
+                $value = $value -replace "#@#", "$($RootConfig)\@Resources\"
+            }
+            if ($option -in $RMSKIN.Keys) {
+                $RMSKIN[$option] = $value
+            }
         }
     }
 
