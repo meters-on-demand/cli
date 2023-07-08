@@ -32,6 +32,11 @@ upgrade [-Skin] <full_name> [-Force]
 uninstall [-Skin] <full_name> [-Force]
  uninstalls the specified skin
 
+package [-Config] <rootconfig> [-LoadType <> -Load <> -VariableFiles <> -MinimumRainmeter <> -MinimumWindows <> -Author <> -HeaderImage <>]
+ Creates an .rmskin package of the specified config, or the current working directory. 
+ The data is read from the skins Mond.inc, with optional commandline overrides. 
+ Please see https://github.com/meters-on-demand/cli/wiki/Package for documentation.
+
 version
  prints the MonD version
 
@@ -44,4 +49,4 @@ Also check out the MonD [wiki](https://github.com/meters-on-demand/mond-api/wiki
 # Credits
 
 - Installer header and GitHub splash background image by [MA SH](https://www.artstation.com/artwork/L36yml)
-
+- RMSKIN footer code from [auto-rmskin-package](https://github.com/brianferguson/auto-rmskin-package/blob/master/.github/workflows/release.yml) by @brianferguson
