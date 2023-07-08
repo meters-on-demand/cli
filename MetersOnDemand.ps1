@@ -291,11 +291,20 @@ function Get-Cache {
         $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json
     }
 
-    if (!$Cache.SkinPath) {
-        if (!(Test-Path -Path "$($SettingsPath)\Rainmeter.ini")) { 
-            return Write-Host "Can't find Rainmeter.ini. <insert link to wiki>" -ForegroundColor Red
-        }
+    if ($SettingsPath) {
         $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value $SettingsPath -Force
+    }
+    if (!$Cache.SettingsPath) {
+        throw "No SettingsPath. Fix by running 'mond update' and providing -SettingsPath"
+    }
+
+    if ($SkinPath) {
+        $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value $SkinPath -Force
+    }
+    if (!$Cache.SkinPath) {
+        if (!(Test-Path -Path "$($SettingsPath)\Rainmeter.ini")) {            
+            throw "Can't find Rainmeter.ini in '$($SettingsPath)'"
+        }
         $settingsContent = Get-Content -Path "$($SettingsPath)\Rainmeter.ini" -Raw
         if ($settingsContent -match 'SkinPath=(.*)') {
             $path = $Matches[0]
@@ -303,7 +312,7 @@ function Get-Cache {
             $path = $path -replace '\\?\s?$'
             $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value $path -Force
         }
-        else { throw "Can't find SkinPath in Rainmeter.ini" }
+        else { throw "Can't find SkinPath in Rainmeter.ini. Fix by adding SkinPath to Rainmeter.ini or run 'mond update' and provide -SkinPath" }
     }
 
     return $Cache
