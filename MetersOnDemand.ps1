@@ -625,7 +625,8 @@ function Get-SkinInfo {
 
     $RMSKIN = @{
         Name             = $RootConfig
-        Author           = Split-Path -Path $env:USERPROFILE -Leaf
+        # Author           = Split-Path -Path $env:USERPROFILE -Leaf
+        Author           = $null
         Version          = $null
         LoadType         = $False
         Load             = $False
