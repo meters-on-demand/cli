@@ -1017,6 +1017,10 @@ try {
             break
         }
         "package" {
+            if($Parameter -and !$Config) {
+                $Config = $Parameter
+            } 
+
             $PowerShellVersion = $PSVersionTable.PSVersion
             if ($PowerShellVersion.Major -lt 5) {
                 Write-Host "You are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n" -ForegroundColor Yellow
