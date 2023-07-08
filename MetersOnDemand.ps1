@@ -53,14 +53,17 @@ param (
     [string]
     $PackageVersion,
     [Parameter()]
+    [Alias("o")]
     [string]
-    $Output,
+    $OutPath,
     [Parameter()]
+    [Alias("name")]
     [string]
-    $Name,
+    $OutFile,
     [Parameter()]
+    [Alias("Directory", "d")]
     [string]
-    $Directory,
+    $OutDirectory,
     [Parameter()]
     [string]
     $Ignore,
@@ -634,7 +637,6 @@ function Get-SkinInfo {
         MinimumRainmeter = "$MinimumRainmeter"
         MinimumWindows   = "$MinimumWindows"
         HeaderImage      = "$HeaderImage"
-        Output           = "$Output"
         Ignore           = "$Ignore"
     }
 
@@ -811,8 +813,8 @@ function New-Skin {
     $filename += ".rmskin"
 
     # Override output name
-    if ($Name) {
-        $filename = ($Name -replace ".rmskin$", "") + ".rmskin"
+    if ($OutFile) {
+        $filename = ($OutFile -replace ".rmskin$", "") + ".rmskin"
     }
 
     $archive = "$($temp)\skin.zip"
@@ -825,14 +827,14 @@ function New-Skin {
 
     # Override output directory
     $dir = "$($env:USERPROFILE)\Desktop"
-    if ($Directory) {
-        $dir = $Directory -replace "\\$", ""
+    if ($OutDirectory) {
+        $dir = $OutDirectory -replace "\\$", ""
     }
 
     # Override entire output path
-    if($Output) {
-        $dir = Split-Path $Output
-        $filename = ("$(Split-Path $Output -Leaf)" -replace ".rmskin$", "") + ".rmskin"
+    if($OutPath) {
+        $dir = Split-Path $OutPath
+        $filename = ("$(Split-Path $OutPath -Leaf)" -replace ".rmskin$", "") + ".rmskin"
     }
 
     $OutputPath = "$($dir)\$($filename)"
@@ -1031,10 +1033,10 @@ try {
             $RootConfig = $workingName
             if ($Config) { $RootConfig = $Config }
 
-            if ($Directory -and !(Test-Path -Path "$($Directory)")) {
+            if ($OutDirectory -and !(Test-Path -Path "$($OutDirectory)")) {
                 throw "Invalid -OutputDirectory" 
             }
-            if ($Output -and !(Test-Path -Path "$(Split-Path $Output)")) {
+            if ($OutPath -and !(Test-Path -Path "$(Split-Path $OutPath)")) {
                 throw "Invalid -Output"
             }
 
