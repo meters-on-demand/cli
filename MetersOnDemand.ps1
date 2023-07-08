@@ -57,6 +57,12 @@ param (
     $Output,
     [Parameter()]
     [string]
+    $Name,
+    [Parameter()]
+    [string]
+    $Directory,
+    [Parameter()]
+    [string]
     $Ignore,
     [Parameter()]
     [switch]
@@ -804,8 +810,9 @@ function New-Skin {
     if ($RMSKIN.Version) { $filename += " $($RMSKIN.Version)" }
     $filename += ".rmskin"
 
-    if ($Output) {
-        $filename = ($Output -replace ".rmskin$", "") + ".rmskin"
+    # Override output name
+    if ($Name) {
+        $filename = ($Name -replace ".rmskin$", "") + ".rmskin"
     }
 
     $archive = "$($temp)\skin.zip"
@@ -816,8 +823,22 @@ function New-Skin {
     Add-RMfooter -Target $archive
     Write-Host "Skin packaged!" -ForegroundColor Green
 
-    Move-Item -Path "$($temp)\skin.rmskin" -Destination "$($env:USERPROFILE)\Desktop\$($filename)" -Force
-    Write-Host "$($filename) moved to desktop." -ForegroundColor Blue
+    # Override output directory
+    $dir = "$($env:USERPROFILE)\Desktop"
+    if ($Directory) {
+        $dir = $Directory -replace "\\$", ""
+    }
+
+    # Override entire output path
+    if($Output) {
+        $dir = Split-Path $Output
+        $filename = ("$(Split-Path $Output -Leaf)" -replace ".rmskin$", "") + ".rmskin"
+    }
+
+    $OutputPath = "$($dir)\$($filename)"
+
+    Move-Item -Path "$($temp)\skin.rmskin" -Destination $OutputPath -Force
+    Write-Host "$($filename) moved to $($OutputPath)." -ForegroundColor Blue
 
 }
 
@@ -1009,6 +1030,13 @@ try {
             $workingName = Split-Path -Path $pwd -Leaf
             $RootConfig = $workingName
             if ($Config) { $RootConfig = $Config }
+
+            if ($Directory -and !(Test-Path -Path "$($Directory)")) {
+                throw "Invalid -OutputDirectory" 
+            }
+            if ($Output -and !(Test-Path -Path "$(Split-Path $Output)")) {
+                throw "Invalid -Output"
+            }
 
             Write-Host "packaging $RootConfig"
 
