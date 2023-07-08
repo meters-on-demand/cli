@@ -25,8 +25,33 @@ param (
     [string]
     $Config,
     [Parameter()]
+    [ValidateSet("skin", "layout")]
+    [string]
+    $LoadType,
+    [Parameter()]
+    [string]
+    $Load,
+    [Parameter()]
+    [string]
+    $VariableFiles,
+    [Parameter()]
+    [string]
+    $MinimumRainmeter,
+    [Parameter()]
+    [string]
+    $MinimumWindows,
+    [Parameter()]
+    [string]
+    $Author,
+    [Parameter()]
+    [string]
+    $HeaderImage,
+    [Parameter()]
     [string]
     $SettingsPath,
+    [Parameter()]
+    [string]
+    $PackageVersion,
     [Parameter()]
     [switch]
     $FirstTimeInstall,
@@ -127,8 +152,8 @@ function Help {
         }, 
         [pscustomobject]@{
             Name        = "package"
-            Signature   = "-Config <ROOT CONFIG NAME>"
-            Description = "creates an .rmskin package of the specified config, or the current working directory"
+            Signature   = "-Config <rootconfig> [-LoadType <> -Load <> -VariableFiles <> -MinimumRainmeter <> -MinimumWindows <> -Author <> -HeaderImage <>]"
+            Description = "Creates an .rmskin package of the specified config, or the current working directory. The data is read from the skins Mond.inc, with optional commandline overrides. Please see https://github.com/meters-on-demand/cli/wiki for documentation of Mond.inc and the overrides."
         }, 
         [pscustomobject]@{
             Name        = "version"
@@ -579,6 +604,17 @@ function Get-SkinInfo {
         $RootConfig
     )
 
+    $Overrides = @{
+        Author           = $Author
+        Version          = $PackageVersion
+        LoadType         = $LoadType
+        Load             = $Load
+        VariableFiles    = $VariableFiles
+        MinimumRainmeter = $MinimumRainmeter
+        MinimumWindows   = $MinimumWindows
+        HeaderImage      = $HeaderImage
+    }
+
     $RMSKIN = @{
         Name             = $RootConfig
         Author           = Split-Path -Path $env:USERPROFILE -Leaf
@@ -600,6 +636,12 @@ function Get-SkinInfo {
         $value = "$($s[1])".Trim()
         if ($RMSKIN[$option]) {
             $RMSKIN[$option] = $value
+        }
+    }
+
+    foreach ($option in $Overrides.GetEnumerator()) {
+        if($option.Value) {
+            $RMSKIN[$option.Name] = $option.Value
         }
     }
 
