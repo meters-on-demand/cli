@@ -645,12 +645,12 @@ function Get-SkinInfo {
         # Author           = Split-Path -Path $env:USERPROFILE -Leaf
         Author           = $null
         Version          = $null
-        LoadType         = $False
-        Load             = $False
-        VariableFiles    = $False
+        LoadType         = $null
+        Load             = $null
+        VariableFiles    = $null
         MinimumRainmeter = "4.5.17"
         MinimumWindows   = "5.1"
-        HeaderImage      = $False
+        HeaderImage      = $null
         Exclude          = ""
     }
 
@@ -726,42 +726,34 @@ function New-Skin {
         $RootConfig
     )
 
+    # Find rootconfig
     $RootConfigPath = "$($SkinPath)\$($RootConfig)"
-    Write-Host "ROOTCONFIGPATH = $RootConfigPath"
+    if (!(Test-Path -Path $RootConfigPath)) { 
+        throw "RootConfigPath '$($RootConfigPath)' does not exist." 
+    }
+    Write-Host "Found ROOTCONFIG at " -NoNewline -ForegroundColor Gray 
+    Write-Host "$RootConfigPath" -ForegroundColor White
 
-    Write-Host "Getting SkinInfo"
+    # Get skin information
     $RMSKIN = Get-SkinInfo -SkinPath $SkinPath -RootConfig "$RootConfig"
-    Write-Host "Got SkinInfo"
-
-    Write-Host "Getting plugins"
-    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig "$RootConfig"
-    Write-Host "Got plugins"
+    Write-Host "`nSkin information:" -ForegroundColor Blue
+    # $RMSKIN
 
     # Temp path
-    Write-Host "Clearing temp"
     $temp = "$($SkinPath)\$($Self.TempDirectory)"
     Clear-Temp -SkinPath $SkinPath
-    Write-Host "Cleared temp"
 
     # Create RMSKIN.ini
     $ini = "[rmskin]"
-    Write-Host "Generating [rmskin]"
     $ignoredOptions = @("ignore", "headerimage")
     foreach ($option in $RMSKIN.GetEnumerator()) {
         if (("$($option.Name)".ToLower() -notin $ignoredOptions) -and ($option.Value)) {
-            $ini += "`n$($option.Name)=$($option.Value)"
+            $append = "$($option.Name)=$($option.Value)"
+            Write-Host $append
+            $ini += "`n$append"
         }
     }
     $ini | Out-File -FilePath "$($temp)\RMSKIN.ini"
-
-    # Copy the header image
-    $header = $RMSKIN.HeaderImage
-    if ($header -match "^$RootConfig") {
-        $header = "$($SkinPath)\$($header)"
-    }
-    if ($header) {
-        Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
-    }
 
     # Copy the skin
     $__ = New-Item -ItemType Directory -Path "$($temp)\Skins"
@@ -773,57 +765,67 @@ function New-Skin {
         "$($RMSKIN.Exclude)" -split ",|\|" | % { $excluded += "$($_)".Trim() }
     }
     Copy-Item -Path "$($RootConfigPath)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $excluded -Recurse
+    # Write-Host "`nCopied '$($RootConfig)' skin files"
+    
+    # Get plugins
+    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig "$RootConfig"
+    Write-Host "`nDetected plugins used in skin:" -ForegroundColor Blue
+    Write-Host $plugins.Keys
 
     # Copy the plugins
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins"
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\32bit"
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\64bit"
-    Write-Host "Copying plugins"
+    if ($plugins.Length) {
+        Write-Host "`nCollecting plugins for package..." -ForegroundColor Blue
+    }
     foreach ($plugin in $plugins.Keys) {
         $vault = "$($SkinPath)\@Vault"
         $pluginDirectory = "$($vault)\Plugins\$($plugin)"
         if (!(Test-Path -Path $pluginDirectory)) {
-            Write-Host "Skipping $($plugin), it's either built-in or not installed."
+            Write-Warning "Skipping $($plugin), it's either built-in to Rainmeter (safe to ignore) or not installed."
         }
         else {
             $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
             $latest = "$($pluginDirectory)\$($versions[0])"
-
             Copy-Item -Path "$($latest)\32bit\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
             Copy-Item -Path "$($latest)\64bit\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
+            Write-Host "Copied $plugin $($versions[0])"
         }
     }
-    Write-Host "Copied plugins"
 
+    # Copy the header image
+    $header = $RMSKIN.HeaderImage
+    if ($header -match "^$RootConfig") {
+        $header = "$($SkinPath)\$($header)"
+    }
+    if ($header) {
+        Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
+        Write-Host "`nCopied header image to RMSKIN.bmp"
+    }
+    
     # Copy the layout
-    Write-Host "Copying layout"
     if ("$($RMSKIN.LoadType)".ToLower() -eq "layout") {
-        $layout = "$($SettingsPath)\Layouts\$($RootConfig)"
-        if (!(Test-Path -Path "$layout")) {
-            throw "Layout doesn't exist" 
-        }
+        $layoutname = $RMSKIN.Load
+        $layout = "$($SettingsPath)\Layouts\$($layoutname)"
+        if (!(Test-Path -Path "$layout")) { throw "Layout '$($layoutname)' doesn't exist" }
         $__ = New-Item -ItemType Directory -Path "$($temp)\Layouts"
         Copy-Item -Path "$layout" -Recurse -Destination "$($temp)\Layouts"
+        Write-Host "Included the '$($layoutname)' layout"
     }
-    Write-Host "Copied layout"
-
-    Write-Host "Archiving..."
-    $filename = "$($RootConfig)"
-    if ($RMSKIN.Version) { $filename += " $($RMSKIN.Version)" }
-    $filename += ".rmskin"
 
     # Override output name
-    if ($OutFile) {
-        $filename = ($OutFile -replace ".rmskin$", "") + ".rmskin"
-    }
+    $filename = "$($RootConfig)"
+    if ($RMSKIN.Version) { $filename += " $($RMSKIN.Version)" }
+    if ($OutFile) { $filename = $OutFile -replace ".rmskin$", "" }
+    $filename += ".rmskin"
 
     $archive = "$($temp)\skin.zip"
+    Write-Host "`nCreating .zip archive..."
     Compress-Archive -CompressionLevel Optimal -Path "$($temp)\*" -DestinationPath $archive
-    Write-Host "Archived!"
 
-    Write-Host "Appending archive size in bytes"
     Add-RMfooter -Target $archive
-    Write-Host "Skin packaged!" -ForegroundColor Green
+    Write-Host "`nSkin package created!" -ForegroundColor Green
 
     # Override output directory
     $dir = "$($env:USERPROFILE)\Desktop"
@@ -840,7 +842,8 @@ function New-Skin {
     $OutputPath = "$($dir)\$($filename)"
 
     Move-Item -Path "$($temp)\skin.rmskin" -Destination $OutputPath -Force
-    Write-Host "$($filename) moved to $($OutputPath)." -ForegroundColor Blue
+    Write-Host "Final output at: " -NoNewline
+    Write-Host "'$($OutputPath)'" -ForegroundColor White
 
 }
 
@@ -857,7 +860,7 @@ function Add-RMfooter {
     }    
 
     # Yoinked from https://github.com/brianferguson/auto-rmskin-package/blob/master/.github/workflows/release.yml
-    Write-Output "Writing footer..."
+    Write-Output "Writing security flags..."
     $size = [long](Get-Item $Target).length
     $size_bytes = [System.BitConverter]::GetBytes($size)
     if ($AsByteStream) {
@@ -879,10 +882,9 @@ function Add-RMfooter {
     $rmskin = [string]"RMSKIN`0"
     Add-Content -Path $Target -Value $rmskin -NoNewLine -Encoding ASCII
 
-    Write-Output "Changing .zip to .rmskin"
+    Write-Output "Renaming .zip to .rmskin..."
     Rename-Item -Path $Target -NewName ([io.path]::ChangeExtension($Target, '.rmskin'))
     $Target = $Target.Replace(".zip", ".rmskin")
-    Write-Output "Packaged $($Target)"
 }
 
 # https://github.com/ThePoShWolf/Utilities/blob/master/Misc/Set-PathVariable.ps1
@@ -1017,13 +1019,13 @@ try {
             break
         }
         "package" {
-            if($Parameter -and !$Config) {
+            if ($Parameter -and !$Config) {
                 $Config = $Parameter
             } 
 
             $PowerShellVersion = $PSVersionTable.PSVersion
             if ($PowerShellVersion.Major -lt 5) {
-                Write-Host "You are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n" -ForegroundColor Yellow
+                Write-Warning "`nYou are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n"
             }
 
             $SkinPath = $Cache.SkinPath
@@ -1044,8 +1046,6 @@ try {
                 throw "Invalid -Output"
             }
 
-            Write-Host "packaging $RootConfig"
-
             New-Skin -SkinPath $SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath
         }
         "search" {
@@ -1056,7 +1056,7 @@ try {
 
             if (-not $found) { return Write-Host "No skins found." }
 
-            Write-Host "Found $($found.length) skins: `n"
+            Write-Host "Found $($found.length) skins: `n" -ForegroundColor Green
 
             $found | % {
                 Write-Host $_.full_name -ForegroundColor Blue -NoNewline
