@@ -56,6 +56,9 @@ param (
     [string]
     $Output,
     [Parameter()]
+    [string]
+    $Ignore,
+    [Parameter()]
     [switch]
     $FirstTimeInstall,
     [Alias("v")]
@@ -617,7 +620,7 @@ function Get-SkinInfo {
         MinimumWindows   = "$MinimumWindows"
         HeaderImage      = "$HeaderImage"
         Output           = "$Output"
-        Ignore           = $Ignore
+        Ignore           = "$Ignore"
     }
 
     $RMSKIN = @{
