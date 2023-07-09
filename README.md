@@ -16,12 +16,15 @@ To use MonD, you need to use the command line. Both `cmd` and `powershell` work.
 
 Notice that if you had your terminal open before running the installer, you need to reopen it to make Windows detect the MonD script.
 
-```ps1
+```sh
 update [-Force]
  updates the skins list
 
 install [-Skin] <full_name> [-Force]
  installs the specified skin
+
+list
+ lists installed skins
 
 search [-Query] <keyword> [-Property <property>]
  searches the skin list
@@ -32,10 +35,13 @@ upgrade [-Skin] <full_name> [-Force]
 uninstall [-Skin] <full_name> [-Force]
  uninstalls the specified skin
 
-package [-Config] <rootconfig> [-LoadType <> -Load <> -VariableFiles <> -MinimumRainmeter <> -MinimumWindows <> -Author <> -HeaderImage <>]
- Creates an .rmskin package of the specified config, or the current working directory.
- The data is read from the skins Mond.inc, with optional commandline overrides.
- Please see https://github.com/meters-on-demand/cli/wiki/Package for documentation.
+restore [-Skin] <full_name> [-Force]
+ restores an upgraded or uninstalled skin from @Backup
+
+package [[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>]
+ Creates an .rmskin package of the specified skin.
+ Scans the skin files for plugins used and can be customized using a mond.inc configuration file.
+ Please see 'https://github.com/meters-on-demand/cli/wiki/Package' for further documentation.
 
 version
  prints the MonD version
