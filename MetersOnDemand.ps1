@@ -82,10 +82,10 @@ param (
 # Globals
 $Self = [PSCustomObject]@{ 
     Version       = "v1.2.0";
-    Directory     = "#MonD"; 
+    Directory     = "Meters on Demand"; 
     FileName      = "MetersOnDemand.ps1"; 
     BatFileName   = "mond.bat"
-    TempDirectory = "#MonD\temp"
+    TempDirectory = "Meters on Demand\temp"
 }
 
 $Cache = $false
@@ -842,6 +842,9 @@ function New-Skin {
     $OutputPath = "$($dir)\$($filename)"
 
     Move-Item -Path "$($temp)\skin.rmskin" -Destination $OutputPath -Force
+
+    Clear-Temp -SkinPath $SkinPath
+
     Write-Host "Final output at: " -NoNewline
     Write-Host "'$($OutputPath)'" -ForegroundColor White
 
@@ -915,7 +918,7 @@ function Set-PathVariable {
     [System.Environment]::SetEnvironmentVariable('PATH', $value, $Scope)
 }
 
-function InstallMonD {    
+function InstallMonD {
 
     Write-Host "DEBUG INFORMATION"
     Write-Host "/////////////////"
@@ -931,24 +934,43 @@ function InstallMonD {
 
     Write-Host "`nInstalling MonD..."
 
+    # Checks
+    if (!$SkinPath) { throw "Please provide the -SkinPath parameter." }
+    if (!(Test-Path $SkinPath)) { throw "SkinPath '$($SkinPath)' doesn't exist." }
+    if (!$SettingsPath) { throw "Please provide the -SettingsPath parameter." }
+
     # Remove trailing \
     $SkinPath = $SkinPath -replace "\\$", ""
     $SettingsPath = $SettingsPath -replace "\\$", ""
 
     $InstallPath = "$SkinPath\$($Self.Directory)"
-    if (!(Test-Path $SkinPath)) { throw "SkinPath ($($SkinPath)) doesn't exist???" }
-    if (!(Test-Path $InstallPath)) { New-Item -ItemType Directory -Path $InstallPath }
+    $CopyToInstallPath = $False
+    if (!(Test-Path $InstallPath)) { 
+        Write-Host "Install path '$($InstallPath)' doesn't exist where am I? Who am I? Why have you done this?"
+        New-Item -ItemType Directory -Path $InstallPath 
+        $CopyToInstallPath = $True
+    }
 
     Write-Host "`nCreating the cache"
     $Cache = Update-Cache -Force 
-    $Cache = Save-Cache -Cache $cache
+    $Cache = Save-Cache -Cache $Cache
 
-    Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
-
-    Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath -Force
-    Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath -Force
-    Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
-
+    if ($CopyToInstallPath) {
+        Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
+        Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath -Force
+        Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath -Force
+        Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
+    }
+    
+    $arrPath = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::User) -split ';'
+    $OldPath = "$SkinPath\#Mond"
+    if ($OldPath -in $arrPath) {
+        Write-Host "Uninstalling MonD from the old location (pre 1.3.0)"
+        Remove-Item $OldPath -Recurse
+        Write-Host "Removing '$($OldPath)' from PATH"
+        Set-PathVariable -RemovePath $OldPath
+    }
+    
     Write-Host "Adding '$InstallPath' to PATH"
     Set-PathVariable -AddPath $InstallPath
 

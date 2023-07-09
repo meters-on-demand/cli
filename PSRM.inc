@@ -1,3 +1,5 @@
+; This is a test "skin" for MonD compability with PSRM
+
 [Rainmeter]
 Update=1000
 
