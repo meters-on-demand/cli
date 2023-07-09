@@ -10,6 +10,7 @@ param (
     [string]
     $Option,
     [Parameter()]
+    [Alias("Config")]
     [string]
     $Skin,
     [Parameter()]
@@ -21,9 +22,6 @@ param (
     [Parameter()]
     [string]
     $SkinPath,
-    [Parameter()]
-    [string]
-    $Config,
     [Parameter()]
     [ValidateSet("skin", "layout")]
     [string]
@@ -130,6 +128,8 @@ function Version { Write-Host "MonD $($Self.Version)" -ForegroundColor Blue }
 
 function Help {
 
+    $PackageWiki = 'https://github.com/meters-on-demand/cli/wiki/Package'
+
     $PowerShellVersion = $PSVersionTable.PSVersion
     if ($PowerShellVersion.Major -lt 5) {
         Write-Host "You are running PowerShell $($PowerShellVersion) which is outdated. PowerShell 5 or 7 is recommended.`n" -ForegroundColor Yellow
@@ -151,6 +151,11 @@ function Help {
             Description = "installs the specified skin"
         }, 
         [pscustomobject]@{
+            Name        = "list"
+            Signature   = ""
+            Description = "lists installed skins"
+        }, 
+        [pscustomobject]@{
             Name        = "search"
             Signature   = "[-Query] <keyword> [-Property <property>]"
             Description = "searches the skin list"
@@ -166,9 +171,14 @@ function Help {
             Description = "uninstalls the specified skin"
         }, 
         [pscustomobject]@{
+            Name        = "restore"
+            Signature   = "$skinSig $forceSig"
+            Description = "restores an upgraded or uninstalled skin from $($Removed)"
+        }, 
+        [pscustomobject]@{
             Name        = "package"
-            Signature   = "-Config <rootconfig> [-LoadType <> -Load <> -VariableFiles <> -MinimumRainmeter <> -MinimumWindows <> -Author <> -HeaderImage <>]"
-            Description = "Creates an .rmskin package of the specified config, or the current working directory. The data is read from the skins Mond.inc, with optional commandline overrides. Please see https://github.com/meters-on-demand/cli/wiki/Package for documentation."
+            Signature   = "[[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>]"
+            Description = "Creates an .rmskin package of the specified skin.`n Scans the skin files for plugins used and can be customized using a mond.inc configuration file.`n Please see '$($PackageWiki)' for further documentation."
         }, 
         [pscustomobject]@{
             Name        = "version"
@@ -182,21 +192,34 @@ function Help {
         }
     )
 
+    if ($Parameter) {
+        $command = $commands | Where-Object { $_.Name -eq $Parameter }
+        if(!$command) { throw "$($Parameter) is not a command. Use 'mond help' to see all available commands." }
+        if($Parameter -eq "package") { Start-Process "$($PackageWiki)" }
+        Write-Host "$($command.name) " -ForegroundColor White -NoNewline
+        Write-Host "$($command.signature) " -ForegroundColor Cyan
+        Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
+        return
+    }
+
     Write-Host "MonD" -ForegroundColor White -NoNewline
     Write-Host " $($Self.Version) " -ForegroundColor Blue -NoNewline
-    Write-Host "list of commands`n" -ForegroundColor White
+    Write-Host "commands`n" -ForegroundColor White
 
     foreach ($command in $commands) {
         Write-Host "$($command.name) " -ForegroundColor White -NoNewline
-        Write-Host "$($command.signature) " -ForegroundColor Gray
+        Write-Host "$($command.signature) " -ForegroundColor Cyan
         Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
         Write-Host "`n"
     }
+    
+    Write-Host "Check out the mond-cli wiki! " -NoNewline
+    Write-Host "https://github.com/meters-on-demand/cli/wiki" -ForegroundColor Blue
 
-    Write-Host "Also check out the MonD wiki! " -NoNewline
-    Write-Host "https://github.com/meters-on-demand/mond-api/wiki" -ForegroundColor Blue -NoNewline
-    Write-Host "`n"
+    Write-Host "Also check out the API wiki! " -NoNewline
+    Write-Host "https://github.com/meters-on-demand/mond-api/wiki" -ForegroundColor Blue
 
+    return 
 }
 
 function Get-SkinObject {
@@ -1003,6 +1026,7 @@ try {
                 return
             }
             Write-Host "Cache updated!"
+            break
         }
         "install" {
             if ($Skin) { $Parameter = $Skin }
@@ -1015,6 +1039,7 @@ try {
         "list" {
             $Installed = $Cache.Installed 
             ToIteratable -Object $Installed | % { Write-Host $_.Name }
+            break
         }
         "upgrade" {
             if ($Skin) { $Parameter = $Skin }
@@ -1041,9 +1066,9 @@ try {
             break
         }
         "package" {
-            if ($Parameter -and !$Config) {
-                $Config = $Parameter
-            } 
+            if ($Parameter -and !$Skin) {
+                $Skin = $Parameter
+            }
 
             $PowerShellVersion = $PSVersionTable.PSVersion
             if ($PowerShellVersion.Major -lt 5) {
@@ -1053,13 +1078,13 @@ try {
             $SkinPath = $Cache.SkinPath
 
             $workingParent = Split-Path -Path $pwd
-            if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Config)) {
-                throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Config parameter!"
+            if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Skin)) {
+                throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Skin parameter!"
             }
             
             $workingName = Split-Path -Path $pwd -Leaf
             $RootConfig = $workingName
-            if ($Config) { $RootConfig = $Config }
+            if ($Skin) { $RootConfig = $Skin }
 
             if ($OutDirectory -and !(Test-Path -Path "$($OutDirectory)")) {
                 throw "Invalid -OutputDirectory" 
@@ -1069,6 +1094,7 @@ try {
             }
 
             New-Skin -SkinPath $SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath
+            break
         }
         "search" {
             if ($Query) { $Parameter = $Query }
