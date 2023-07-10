@@ -79,11 +79,11 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.0";
-    Directory     = "Meters on Demand"; 
+    Version       = "v1.2.0b";
+    Directory     = "#Mond"; 
     FileName      = "MetersOnDemand.ps1"; 
     BatFileName   = "mond.bat"
-    TempDirectory = "Meters on Demand\temp"
+    TempDirectory = "#Mond\temp"
 }
 
 $Cache = $false
@@ -967,11 +967,8 @@ function InstallMonD {
     $SettingsPath = $SettingsPath -replace "\\$", ""
 
     $InstallPath = "$SkinPath\$($Self.Directory)"
-    $CopyToInstallPath = $False
     if (!(Test-Path $InstallPath)) { 
-        Write-Host "Install path '$($InstallPath)' doesn't exist where am I? Who am I? Why have you done this?"
         New-Item -ItemType Directory -Path $InstallPath 
-        $CopyToInstallPath = $True
     }
 
     Write-Host "`nCreating the cache"
@@ -984,16 +981,7 @@ function InstallMonD {
         Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath -Force
         Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
     }
-    
-    $arrPath = [System.Environment]::GetEnvironmentVariable('PATH', [System.EnvironmentVariableTarget]::User) -split ';'
-    $OldPath = "$SkinPath\#Mond"
-    if ($OldPath -in $arrPath) {
-        Write-Host "Uninstalling MonD from the old location (pre 1.3.0)"
-        Remove-Item $OldPath -Recurse
-        Write-Host "Removing '$($OldPath)' from PATH"
-        Set-PathVariable -RemovePath $OldPath
-    }
-    
+
     Write-Host "Adding '$InstallPath' to PATH"
     Set-PathVariable -AddPath $InstallPath
 
