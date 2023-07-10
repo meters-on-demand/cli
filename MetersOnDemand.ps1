@@ -194,8 +194,8 @@ function Help {
 
     if ($Parameter) {
         $command = $commands | Where-Object { $_.Name -eq $Parameter }
-        if(!$command) { throw "$($Parameter) is not a command. Use 'mond help' to see all available commands." }
-        if($Parameter -eq "package") { Start-Process "$($PackageWiki)" }
+        if (!$command) { throw "$($Parameter) is not a command. Use 'mond help' to see all available commands." }
+        if ($Parameter -eq "package") { Start-Process "$($PackageWiki)" }
         Write-Host "$($command.name) " -ForegroundColor White -NoNewline
         Write-Host "$($command.signature) " -ForegroundColor Cyan
         Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
@@ -975,12 +975,10 @@ function InstallMonD {
     $Cache = Update-Cache -Force 
     $Cache = Save-Cache -Cache $Cache
 
-    if ($CopyToInstallPath) {
-        Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
-        Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath -Force
-        Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath -Force
-        Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
-    }
+    Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
+    Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath -Force
+    Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath -Force
+    Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
 
     Write-Host "Adding '$InstallPath' to PATH"
     Set-PathVariable -AddPath $InstallPath
