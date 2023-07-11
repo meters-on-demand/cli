@@ -68,6 +68,9 @@ param (
     [Parameter()]
     [switch]
     $FirstTimeInstall,
+    [Parameter()]
+    [switch]
+    $MergeSkins,
     [Alias("v")]
     [Parameter()]
     [switch]
@@ -675,6 +678,7 @@ function Get-SkinInfo {
         MinimumWindows   = "5.1"
         HeaderImage      = $null
         Exclude          = ""
+        MergeSkins       = $null
     }
 
     $mondinc = Get-MondInc -SkinPath $SkinPath -RootConfig "$RootConfig"
@@ -702,6 +706,10 @@ function Get-SkinInfo {
             $RMSKIN[$option.Name] = $option.Value
         }
     }
+
+    # Handle MergeSkins
+    if ($MergeSkins) { $RMSKIN["MergeSkins"] = 1 }
+    if ($RMSKIN.MergeSkins) { $RMSKIN.Remove("VariableFiles") }
 
     return $RMSKIN
 }
