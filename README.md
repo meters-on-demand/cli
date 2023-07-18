@@ -63,6 +63,7 @@ Also check out the MonD [wiki](https://github.com/meters-on-demand/mond-api/wiki
 - [ ] Detect included and used Fonts
   - Add-Type -AssemblyName PresentationCore
   - (New-Object -TypeName Windows.Media.GlyphTypeface -ArgumentList 'path\to\font').Win32FamilyNames.Values
+- [ ] Make -Version a string and use it instead of -PackageVersion
 
 # Credits
 
