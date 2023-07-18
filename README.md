@@ -38,7 +38,7 @@ uninstall [-Skin] <full_name> [-Force]
 restore [-Skin] <full_name> [-Force]
  restores an upgraded or uninstalled skin from @Backup
 
-package [[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>]
+package [[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-PackageVersion <>]
  Creates an .rmskin package of the specified skin.
  Scans the skin files for plugins used and can be customized using a mond.inc configuration file.
  Please see 'https://github.com/meters-on-demand/cli/wiki/Package' for further documentation.
@@ -60,6 +60,9 @@ Also check out the MonD [wiki](https://github.com/meters-on-demand/mond-api/wiki
   - Create mond.inc, "save" the options
   - Read mond.inc and autofill the GUI
   - Package skins
+- [ ] Detect included and used Fonts
+  - Add-Type -AssemblyName PresentationCore
+  - (New-Object -TypeName Windows.Media.GlyphTypeface -ArgumentList 'path\to\font').Win32FamilyNames.Values
 
 # Credits
 

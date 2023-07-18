@@ -180,7 +180,7 @@ function Help {
         }, 
         [pscustomobject]@{
             Name        = "package"
-            Signature   = "[[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>]"
+            Signature   = "[[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-PackageVersion <>]"
             Description = "Creates an .rmskin package of the specified skin.`n Scans the skin files for plugins used and can be customized using a mond.inc configuration file.`n Please see '$($PackageWiki)' for further documentation."
         }, 
         [pscustomobject]@{
