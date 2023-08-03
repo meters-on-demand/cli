@@ -726,16 +726,18 @@ function Get-Plugins {
     $RootConfigPath = "$($SkinPath)\$($RootConfig)"
 
     $plugins = @{}
-    
+
     $files = Get-ChildItem -Path "$RootConfigPath" -Recurse -File -Include *.inc, *.ini
-    
+
     $PP = '^\s*(?i)plugin\s*=\s*(.*)$'
-        
+
     $files | ForEach-Object {
         $lines = $_ | Get-Content
         $lines | ForEach-Object {
             if ($_ -match $PP) {
                 $plugin = "$($Matches[1])".ToLower()
+                $plugin = $plugin -replace "\.dll$",""
+                $plugin = $plugin -replace "^plugins[\\\/]",""
                 $plugins[$plugin] = $True
             }
         }
