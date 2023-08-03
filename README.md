@@ -50,7 +50,7 @@ help [-Command]
  show this help
 ```
 
-Also check out the MonD [wiki](https://github.com/meters-on-demand/mond-api/wiki)!
+Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for more information about how the backend works. There's also a [guide to the package command](https://github.com/meters-on-demand/cli/wiki/Package).
 
 # TO-DO:
 
