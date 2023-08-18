@@ -1,11 +1,4 @@
 [MonD]
-Measure=String
-UpdateDivider=1
-IfMatch=#ROOTCONFIG#
-String=Meters on Demand
-IfMatchAction=[!DisableMeasure "MonD"]
-IfNotMatchAction=[!WriteKeyValue "MonD" "String" "[#ROOTCONFIG]" "#@#Mond.inc"][!WriteKeyValue "MonD" "SkinName" "[#ROOTCONFIG]" "#@#Mond.inc"][!Refresh]
-
 Author=Reisir
 PreviewImage=
 ProfilePicture=https://avatars.githubusercontent.com/u/93496808

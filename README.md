@@ -70,4 +70,5 @@ Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for 
 # Credits
 
 - Installer header and GitHub splash background image by [MA SH](https://www.artstation.com/artwork/L36yml)
-- RMSKIN footer code from [auto-rmskin-package](https://github.com/brianferguson/auto-rmskin-package/blob/master/.github/workflows/release.yml) by @brianferguson
+- RMSKIN footer code from [auto-rmskin-package](https://github.com/brianferguson/auto-rmskin-package/blob/master/.github/workflows/release.yml) by [@brianferguson](https://github.com/brianferguson)
+- Logo design by [@creepertron95](https://github.com/creepertron95) with edits by Jeff
