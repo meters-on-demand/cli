@@ -60,6 +60,8 @@ Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for 
   - Create mond.inc, "save" the options
   - Read mond.inc and autofill the GUI
   - Package skins
+- [ ] Use SkinName as output archive name
+- [ ] Detect removed / privated repos and remove them from the API
 - [ ] Detect included and used Fonts
   - Add-Type -AssemblyName PresentationCore
   - (New-Object -TypeName Windows.Media.GlyphTypeface -ArgumentList 'path\to\font').Win32FamilyNames.Values
