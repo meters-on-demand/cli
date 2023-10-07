@@ -93,7 +93,7 @@ $Cache = $false
 $Removed = "@Backup"
 
 # URLs
-$skinsAPI = "https://mond.amv.tools/skins"
+$skinsAPI = "https://api.rainmeter.skin/skins"
 
 # Files
 $cacheFile = "$($PSScriptRoot)\cache.json"
