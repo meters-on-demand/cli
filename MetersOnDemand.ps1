@@ -999,6 +999,42 @@ function InstallMonD {
 
 }
 
+function Format-SkinList {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [PSCustomObject]
+        $Skins,
+        [Parameter()]
+        [Switch]
+        $NewLine,
+        [Parameter()]
+        [Switch]
+        $Description
+    )
+
+    $Skins | ForEach-Object {
+        Write-Host $_.full_name -ForegroundColor Blue -NoNewline
+        $current = $_.latest_release.tag_name
+        $versionColor = "Gray"
+        $installed = $Cache.Installed.($_.full_name)
+        $updateable = $Cache.Updateable.($_.full_name)
+        if ($installed) {
+            $current = $installed
+            $versionColor = "Green"
+        }
+        Write-Host " $($current)" -ForegroundColor $versionColor -NoNewline
+
+        if ($updateable) { Write-Host " ($($updateable) available)" -ForegroundColor Yellow }
+        else { Write-Host "" }
+
+        if ($Description) { Write-Host "$($_.description)" }
+        if ($NewLine) { Write-Host "" }
+
+    }
+
+}
+
 # Main body
 if ($RmApi) { return }
 try {
@@ -1035,8 +1071,9 @@ try {
             break
         }
         "list" {
-            $Installed = $Cache.Installed 
-            ToIteratable -Object $Installed | % { Write-Host $_.Name }
+            $Skins = @()
+            (ToIteratable -Object $Cache.Installed) | % { $Skins += Get-SkinObject -Cache $Cache -FullName $_.name }
+            Format-SkinList -Skins $Skins
             break
         }
         "upgrade" {
@@ -1102,25 +1139,10 @@ try {
 
             if (-not $found) { return Write-Host "No skins found." }
 
-            Write-Host "Found $($found.length) skins: `n" -ForegroundColor Green
+            Write-Host "Found $($found.length) skins:" -ForegroundColor Green
 
-            $found | % {
-                Write-Host $_.full_name -ForegroundColor Blue -NoNewline
-                $current = $_.latest_release.tag_name
-                $versionColor = "Gray"
-                $installed = $Cache.Installed.($_.full_name)
-                $updateable = $Cache.Updateable.($_.full_name)
-                if ($installed) {
-                    $current = $installed
-                    $versionColor = "Green"
-                }
-                Write-Host " $($current)" -ForegroundColor $versionColor -NoNewline
+            Format-SkinList -Skins $found -Description
 
-                if ($updateable) { Write-Host " ($($updateable) available)" -ForegroundColor Yellow }
-                else { Write-Host "" }
-
-                Write-Host "$($_.description)`n"
-            }
             break
         }
         Default {
