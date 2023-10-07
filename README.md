@@ -56,6 +56,8 @@ Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for 
 
 - [ ] Implement fuzzy search :3
 - [ ] Use Version from mond.inc for skins that have it
+- [ ] Integrate death.crafters silent install script for silent installs and mass upgrades
+- [ ] Use PSRM in Installer.ini to show status messages while installing (?)
 - [ ] Packager skin that can
   - Take all of the information with the GUI
   - Read existing .rmskins by drag + drop
