@@ -8,7 +8,7 @@ the Rainmeter package manager. Install skins directly from the command line!
 
 Download the latest .rmskin from [releases](https://github.com/meters-on-demand/cli/releases).
 
-MonD installs through Rainmeter so it can get the #SKINSPATH# variable and detect which skins you have installed. And as MonD is a skin manager, it can update itself through itself.
+MonD installs through Rainmeter so it can get the #SKINSPATH# and #SETTINGSPATH# variables, to detect which skins you have installed. And as MonD is a skin manager, it can update itself through itself.
 
 # Usage
 
@@ -50,23 +50,25 @@ help [-Command]
  show this help
 ```
 
-Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for more information about how the backend works. There's also a [guide to the package command](https://github.com/meters-on-demand/cli/wiki/Package).
+Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for more information about how the backend works. There's also a [guide to the package command](https://github.com/meters-on-demand/cli/wiki/Package) which is strongly recommended for skin developers.
 
 # TO-DO:
 
-- [ ] Make `mond install` do `mond search` and install first result
+- [ ] Implement fuzzy search :3
+- [ ] Use Version from mond.inc for skins that have it
 - [ ] Packager skin that can
   - Take all of the information with the GUI
   - Read existing .rmskins by drag + drop
-  - Create mond.inc, "save" the options
+  - Create mond.inc and save the information
   - Read mond.inc and autofill the GUI
   - Package skins
-- [ ] Use SkinName as output archive name
-- [ ] Detect removed / privated repos and remove them from the API
+- [x] Detect removed / privated repos and remove them from the API
 - [ ] Detect included and used Fonts
   - Add-Type -AssemblyName PresentationCore
   - (New-Object -TypeName Windows.Media.GlyphTypeface -ArgumentList 'path\to\font').Win32FamilyNames.Values
 - [ ] Make -Version a string and use it instead of -PackageVersion
+  - Would have to do parsing in the .bat script before calling MetersOnDemand.ps1
+  - Or just remove -Version as an alias for `mond version`
 
 # Credits
 
