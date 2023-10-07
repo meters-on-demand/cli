@@ -413,6 +413,7 @@ function Get-InstalledSkins {
         throw "SkinPath ($SkinPath) does not exist"
     }
 
+    $NewInstalled = ([PSCustomObject] @{ })
     $skinFolders = Get-ChildItem -Path "$($SkinPath)" -Directory 
     $IteratableSkins = ToIteratable -Object $Cache.Skins
     foreach ($skinFolder in $skinFolders) {
@@ -423,17 +424,18 @@ function Get-InstalledSkins {
             $existing = $Cache.Installed.$full_name
             $latest = $Skin.latest_release.tag_name
             if ($existing) {
+                $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $existing
                 if ($existing -ne $latest) { 
                     $Updateable | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
                 }
             }
             else { 
-                $Installed | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
+                $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
             }
         }
     }
 
-    $Cache | Add-Member -MemberType noteproperty -Name 'Installed' -Value $Installed -Force
+    $Cache | Add-Member -MemberType noteproperty -Name 'Installed' -Value $NewInstalled -Force
     $Cache | Add-Member -MemberType noteproperty -Name 'Updateable' -Value $Updateable -Force
 
     return $Cache
@@ -736,8 +738,8 @@ function Get-Plugins {
         $lines | ForEach-Object {
             if ($_ -match $PP) {
                 $plugin = "$($Matches[1])".ToLower()
-                $plugin = $plugin -replace "\.dll$",""
-                $plugin = $plugin -replace "^plugins[\\\/]",""
+                $plugin = $plugin -replace "\.dll$", ""
+                $plugin = $plugin -replace "^plugins[\\\/]", ""
                 $plugins[$plugin] = $True
             }
         }
