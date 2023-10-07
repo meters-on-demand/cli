@@ -82,7 +82,7 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.2";
+    Version       = "v1.2.3";
     Directory     = "#Mond"; 
     FileName      = "MetersOnDemand.ps1"; 
     BatFileName   = "mond.bat"
@@ -274,9 +274,19 @@ function Install {
         $Cache,
         [Parameter()]
         [switch]
-        $Force
+        $Force,
+        [Parameter()]
+        [Switch]
+        $FirstMatch
     )
     if (!$Cache) { $Cache = Update-Cache }
+
+    if ($FirstMatch) {
+        $Matched = Search -Query $FullName -Cache $Cache -Quiet
+        if ($Matched.Length -gt 1) { throw "Too many results, use a more specific query" }
+        if ($Matched.Length -eq 0) { throw "No results" }
+        $FullName = $Matched[0].full_name
+    }
 
     $installed = $Cache.Installed.$FullName
     if ($installed -and (-not $Force)) {
@@ -585,14 +595,17 @@ function Search {
         $Property,
         [Parameter(Mandatory)]
         [psobject]
-        $Cache
+        $Cache,
+        [Parameter()]
+        [Switch]
+        $Quiet
     )
     if (!$Query) { $Query = ".*" }
     if (!$Property) { $Property = "full_name" }
 
     if (!$Cache) { $Cache = Update-Cache }
 
-    Write-Host "Searching for `"$Query`""
+    if (!$Quiet) { Write-Host "Searching for `"$Query`"" }
 
     $Results = @()
     foreach ($Entry in ToIteratable -Object $Cache.Skins ) {
@@ -1030,9 +1043,7 @@ function Format-SkinList {
 
         if ($Description) { Write-Host "$($_.description)" }
         if ($NewLine) { Write-Host "" }
-
     }
-
 }
 
 # Main body
@@ -1067,7 +1078,7 @@ try {
             if (-not $Parameter) { 
                 throw "Install requires the named parameter -Skin (Position = 1)"
             }
-            Install -FullName $Parameter -Cache $Cache -Force:$Force
+            Install -FullName $Parameter -Cache $Cache -Force:$Force -FirstMatch
             break
         }
         "list" {
