@@ -1013,7 +1013,7 @@ function Format-SkinList {
         $Description
     )
 
-    $Skins | ForEach-Object {
+    $Skins | Sort-Object -Property "full_name" | ForEach-Object {
         Write-Host $_.full_name -ForegroundColor Blue -NoNewline
         $current = $_.latest_release.tag_name
         $versionColor = "Gray"
