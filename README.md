@@ -54,6 +54,7 @@ Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for 
 
 # TO-DO:
 
+- [ ] Make `mond install` do `mond search` and install first result
 - [ ] Packager skin that can
   - Take all of the information with the GUI
   - Read existing .rmskins by drag + drop
