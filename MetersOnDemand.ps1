@@ -683,8 +683,7 @@ function Get-SkinInfo {
     }
 
     $RMSKIN = @{
-        Name             = $RootConfig
-        # Author           = Split-Path -Path $env:USERPROFILE -Leaf
+        SkinName         = $RootConfig
         Author           = $null
         Version          = $null
         LoadType         = $null
@@ -703,9 +702,6 @@ function Get-SkinInfo {
         Get-Content -Path $mondinc | ForEach-Object {
             $s = $_ -split "="
             $option = "$($s[0])".Trim().ToLower()
-            if ($option -eq "skinname") {
-                $option = "Name"
-            }
             $value = "$($s[1])".Trim()
             if ($option -in @("variablefiles", "headerimage")) {
                 $value = $value -replace "#@#\\", "$($RootConfig)\@Resources\"
@@ -793,10 +789,14 @@ function New-Skin {
     Clear-Temp -SkinPath $SkinPath
 
     # Create RMSKIN.ini
-    $ini = "[rmskin]"
-    $ignoredOptions = @("ignore", "headerimage")
+    $ini = @"
+[rmskin]
+Name=$($RMSKIN.SkinName)
+"@
+
+    $ignoredOptions = @("Ignore", "HeaderImage", "SkinName")
     foreach ($option in $RMSKIN.GetEnumerator()) {
-        if (("$($option.Name)".ToLower() -notin $ignoredOptions) -and ($option.Value)) {
+        if (("$($option.Name)" -notin $ignoredOptions) -and ($option.Value)) {
             $append = "$($option.Name)=$($option.Value)"
             Write-Host $append
             $ini += "`n$append"
@@ -864,7 +864,7 @@ function New-Skin {
     }
 
     # Override output name
-    $filename = "$($RootConfig)"
+    $filename = "$($RMSKIN.SkinName)"
     if ($RMSKIN.Version) { $filename += " $($RMSKIN.Version)" }
     if ($OutFile) { $filename = $OutFile -replace ".rmskin$", "" }
     $filename += ".rmskin"
