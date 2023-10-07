@@ -48,6 +48,7 @@ param (
     [string]
     $SettingsPath,
     [Parameter()]
+    [Alias("Version", "v")]
     [string]
     $PackageVersion,
     [Parameter()]
@@ -71,10 +72,6 @@ param (
     [Parameter()]
     [switch]
     $MergeSkins,
-    [Alias("v")]
-    [Parameter()]
-    [switch]
-    $Version,
     [Parameter()]
     [switch]
     $Force
@@ -852,7 +849,7 @@ Name=$($RMSKIN.SkinName)
         Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
         Write-Host "`nCopied header image to RMSKIN.bmp"
     }
-    
+
     # Copy the layout
     if ("$($RMSKIN.LoadType)".ToLower() -eq "layout") {
         $layoutname = $RMSKIN.Load
@@ -1054,7 +1051,6 @@ try {
     if ($FirstTimeInstall) { return InstallMonD }
 
     # Commands that do not need the cache
-    if ($Version) { return Version }
     if ($Command -eq "version") { return Version }
     if ($Command -eq "help") { return Help }
 

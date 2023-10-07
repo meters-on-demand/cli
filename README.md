@@ -66,7 +66,7 @@ Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for 
 - [ ] Detect included and used Fonts
   - Add-Type -AssemblyName PresentationCore
   - (New-Object -TypeName Windows.Media.GlyphTypeface -ArgumentList 'path\to\font').Win32FamilyNames.Values
-- [ ] Make -Version a string and use it instead of -PackageVersion
+- [x] Make -Version a string and use it instead of -PackageVersion
   - Would have to do parsing in the .bat script before calling MetersOnDemand.ps1
   - Or just remove -Version as an alias for `mond version`
 
