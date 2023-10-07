@@ -87,6 +87,7 @@ $Self = [PSCustomObject]@{
     FileName      = "MetersOnDemand.ps1"; 
     BatFileName   = "mond.bat"
     TempDirectory = "#Mond\temp"
+    Repository    = "meters-on-demand/cli"
 }
 
 $Cache = $false
@@ -1060,6 +1061,12 @@ try {
     # Create the cache
     if ($Command -eq "update") { $Force = $True }
     $Cache = Update-Cache -Force:$Force
+
+    # Mond alias
+    if (@("install", "upgrade", "search").Contains($Command)) {
+        if ($Skin -like "mond") { $Skin = $Self.Repository }
+        if ($Parameter -like "mond") { $Parameter = $Self.Repository }
+    }
 
     switch ($Command) {
         "update" {
