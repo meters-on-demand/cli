@@ -1081,6 +1081,71 @@ function Config {
 
 }
 
+function Init {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [string]
+        $SkinName
+    )
+
+    $ConfigPath = "$($Cache.SkinPath)\$($SkinName)"
+    $ResourcesPath = "$($ConfigPath)\@Resources"
+
+    if (Test-Path -Path $ConfigPath) {
+        throw "Skin already exists."
+    }
+
+    New-Item -ItemType Directory -Path $ConfigPath
+    New-Item -ItemType Directory -Path $ResourcesPath
+
+    # Create Mond.inc
+@"
+[MonD]
+Author=
+PreviewImage=
+ProfilePicture=
+Description=
+
+SkinName=$($SkinName)
+LoadType=Skin
+Load=$($SkinName)\$($SkinName).ini
+Version=v1.0.0
+HeaderImage=
+"@ | Out-File -FilePath "$($ResourcesPath)\Mond.inc"
+
+    # Create the variables file
+@"
+[Variables]
+
+"@ | Out-File -FilePath "$($ResourcesPath)\Variables.inc"
+
+    # Create the skin
+@"
+[Rainmeter]
+DefaultUpdateDivider=-1
+@IncludeVariables=#@#Variables.inc
+
+[Metadata]
+Name=$($SkinName)
+Author=
+Information=
+Version=1.0.0
+License=Creative Commons Attribution-Non-Commercial-Share Alike 3.0
+
+[Variables]
+Scale=1
+
+[ummy]
+Meter=Image
+
+"@ | Out-File -FilePath "$($ConfigPath)\$($SkinName).ini"
+
+    # Open the created skin in the default config editor 
+    & "$($Cache.ConfigEditor)" "$ConfigPath"
+
+}
+
 # Main body
 if ($RmApi) { 
     if ($IsInstaller) {
@@ -1121,6 +1186,14 @@ try {
                 throw "Install requires the named parameter -Skin (Position = 1)"
             }
             Install -FullName $Parameter -Cache $Cache -Force:$Force -FirstMatch
+            break
+        }
+        "init" {
+            if ($Skin) { $Parameter = $Skin }
+            if (-not $Parameter) { 
+                throw "Usage: mond init SkinName"
+            }
+            Init -SkinName $Parameter
             break
         }
         "list" {
