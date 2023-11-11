@@ -38,7 +38,7 @@ uninstall [-Skin] <full_name> [-Force]
 restore [-Skin] <full_name> [-Force]
  restores an upgraded or uninstalled skin from @Backup
 
-package [[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-PackageVersion <>]
+package [[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-Version <>]
  Creates an .rmskin package of the specified skin.
  Scans the skin files for plugins used and can be customized using a mond.inc configuration file.
  Please see 'https://github.com/meters-on-demand/cli/wiki/Package' for further documentation.
