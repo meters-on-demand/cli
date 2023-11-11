@@ -23,6 +23,12 @@ param (
     [string]
     $SkinPath,
     [Parameter()]
+    [string]
+    $ProgramPath,
+    [Parameter()]
+    [string]
+    $ConfigEditor,
+    [Parameter()]
     [ValidateSet("skin", "layout")]
     [string]
     $LoadType,
@@ -68,9 +74,6 @@ param (
     $Exclude,
     [Parameter()]
     [switch]
-    $FirstTimeInstall,
-    [Parameter()]
-    [switch]
     $MergeSkins,
     [Parameter()]
     [switch]
@@ -79,7 +82,7 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.3";
+    Version       = "v1.2.4";
     Directory     = "#Mond"; 
     FileName      = "MetersOnDemand.ps1"; 
     BatFileName   = "mond.bat"
@@ -93,21 +96,31 @@ $Removed = "@Backup"
 # URLs
 $skinsAPI = "https://api.rainmeter.skin/skins"
 
-# Files
-$cacheFile = "$($PSScriptRoot)\cache.json"
-$logFile = "$($PSScriptRoot)\mond.log"
-$skinFile = "$($PSScriptRoot)\skin.rmskin"
-
 # If running under PSRM in Rainmeter
 if ($RmApi) {
-    $SkinPath = $($RmApi.VariableStr("SKINSPATH"))
-    $ScriptRoot = "$SkinPath$($Self.Directory)"
-    $cacheFile = "$($ScriptRoot)\cache.json"
-    $logFile = "$($ScriptRoot)\mond.log"
-    $skinFile = "$($ScriptRoot)\skin.rmskin"
+    $SkinPath = "$($RmApi.VariableStr("SKINSPATH"))"
     $SettingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))"
+    $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))"
+    $ProgramPath = "$($RmApi.VariableStr("PROGRAMPATH"))Rainmeter.exe"
+    $IsInstaller = $RmApi.Variable("MetersOnDemand.Install") -eq 1
+
+    # The installed ScriptRoot
+    $ScriptRoot = "$SkinPath$($Self.Directory)"
+    # For copying the script files from the right place
+    $RootConfigPath = "$($RmApi.VariableStr("ROOTCONFIGPATH"))"
 }
-if ((!$RmApi) -and !$PSScriptRoot) { throw "`$PSScriptRoot is not set???" }
+if (!$RmApi) { 
+    if (!$PSScriptRoot) {
+        throw "`$PSScriptRoot is not set???" 
+    }
+    $ScriptRoot = $PSScriptRoot
+    $RootConfigPath = $PSScriptRoot
+}
+
+# Files
+$cacheFile = "$($ScriptRoot)\cache.json"
+$logFile = "$($ScriptRoot)\mond.log"
+$skinFile = "$($ScriptRoot)\skin.rmskin"
 
 function Update {
     if (!$RmApi) {
@@ -119,7 +132,7 @@ function Update {
 
     $parentMeasure = $RmApi.GetMeasureName()
     $RmApi.Bang("[!PauseMeasure `"$($parentMeasure)`"][!SetOption `"$($parentMeasure)`" UpdateDivider -1]")
-    
+
     Write-Host "Updating MonD cache!"
     Update-Cache
     return $Self.Version
@@ -334,32 +347,7 @@ function Get-Cache {
         $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json
     }
 
-    if ($SettingsPath) {
-        $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value $SettingsPath -Force
-    }
-    if (!$Cache.SettingsPath) {
-        throw "No SettingsPath. Fix by running 'mond update' and providing -SettingsPath"
-    }
-
-    if ($SkinPath) {
-        $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value $SkinPath -Force
-    }
-    if (!$Cache.SkinPath) {
-        if (!(Test-Path -Path "$($SettingsPath)\Rainmeter.ini")) {            
-            throw "Can't find Rainmeter.ini in '$($SettingsPath)'"
-        }
-        $settingsContent = Get-Content -Path "$($SettingsPath)\Rainmeter.ini" -Raw
-        if ($settingsContent -match 'SkinPath=(.*)') {
-            $path = $Matches[0]
-            $path = $path -replace '^.*=\s?'
-            $path = $path -replace '\\?\s?$'
-            $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value $path -Force
-        }
-        else { throw "Can't find SkinPath in Rainmeter.ini. Fix by adding SkinPath to Rainmeter.ini or run 'mond update' and provide -SkinPath" }
-    }
-
     return $Cache
-
 }
 
 function Update-Cache {
@@ -615,7 +603,7 @@ function Search {
 
 function ToIteratable {
     param(
-        [Parameter(Mandatory, Position = 1)]
+        [Parameter(Mandatory, Position = 1, ValueFromPipeline)]
         [pscustomobject]
         $Object
     )
@@ -964,49 +952,80 @@ function Set-PathVariable {
     [System.Environment]::SetEnvironmentVariable('PATH', $value, $Scope)
 }
 
-function InstallMonD {
+function InstallMetersOnDemand {
+    # When not running under PSRM
+    if (!$RmApi) {
+        $MissingParameters = $False   
+        if (!$SkinPath) { 
+            Write-Error "Please provide the path to the Skins folder in the -SkinPath parameter." 
+            $MissingParameters = $True
+        }
+        if (!(Test-Path $SkinPath)) { 
+            Write-Error "SkinPath '$($SkinPath)' doesn't exist." 
+            $MissingParameters = $True
+        }
+        if (!$SettingsPath) { 
+            Write-Error "Please provide the path to Rainmeter.ini in the -SettingsPath parameter." 
+            $MissingParameters = $True
+        }
+        if (!$ProgramPath) { 
+            Write-Error "Please provide the path to Rainmeter.exe in the -ProgramPath parameter." 
+            $MissingParameters = $True
+        }
+        if (!$ConfigEditor) { 
+            Write-Error "Please provide the path to the executable of your desired ConfigEditor in the -ConfigEditor parameter."
+            Write-Error "For example: -ConfigEditor `"C:\Users\Reseptivaras\AppData\Local\Programs\Microsoft VS Code\Code.exe`"" 
+            $MissingParameters = $True
+        }
+        if ($MissingParameters) {
+            throw "One or multiple required parameters are missing!"
+        }
+    }
 
-    Write-Host "DEBUG INFORMATION"
-    Write-Host "/////////////////"
-    Write-Host "Self: " -NoNewline
-    Write-Host $Self
-    Write-Host "PSScriptRoot: " -NoNewline
-    Write-Host $PSScriptRoot
-    Write-Host "SkinPath: " -NoNewline
-    Write-Host $SkinPath
-    Write-Host "SettingsPath: " -NoNewline
-    Write-Host $SettingsPath
-    Write-Host "/////////////////"
+    Write-Host "Installing Meters on Demand..."
 
-    Write-Host "`nInstalling MonD..."
-
-    # Checks
-    if (!$SkinPath) { throw "Please provide the -SkinPath parameter." }
-    if (!(Test-Path $SkinPath)) { throw "SkinPath '$($SkinPath)' doesn't exist." }
-    if (!$SettingsPath) { throw "Please provide the -SettingsPath parameter." }
-
-    # Remove trailing \
-    $SkinPath = $SkinPath -replace "\\$", ""
-    $SettingsPath = $SettingsPath -replace "\\$", ""
+    # Remove trailing \ from Rainmeter paths
+    $SkinPath = "$SkinPath" -replace "\\$", ""
+    $SettingsPath = "$SettingsPath" -replace "\\$", ""
+    $RootConfigPath = "$RootConfigPath" -replace "\\$", ""
 
     $InstallPath = "$SkinPath\$($Self.Directory)"
-    if (!(Test-Path $InstallPath)) { 
+    if (!(Test-Path $InstallPath)) {
         New-Item -ItemType Directory -Path $InstallPath 
     }
 
-    Write-Host "`nCreating the cache"
-    $Cache = Update-Cache -Force 
+    # Write debug info
+    Write-Host "/////////////////"
+    Write-Host "Self $($Self)"
+    Write-Host "ScriptRoot: $($ScriptRoot)"
+    Write-Host "RootConfigPath: $($RootConfigPath)"
+    Write-Host "SkinPath: $($SkinPath)"
+    Write-Host "SettingsPath: $($SettingsPath)"
+    Write-Host "ProgramPath: $($ProgramPath)"
+    Write-Host "ConfigEditor: $($ConfigEditor)"
+    Write-Host "/////////////////"
+
+    Write-Host "Creating the cache"
+    $Cache = Update-Cache -Force
+    $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value "$SkinPath" -Force
+    $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value "$SettingsPath" -Force
+    $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
+    $Cache | Add-Member -MemberType NoteProperty -Name "ConfigEditor" -Value "$ConfigEditor" -Force
     $Cache = Save-Cache -Cache $Cache
 
     Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
-    Copy-Item -Path "$PSScriptRoot\$($Self.FileName)" -Destination $InstallPath -Force
-    Copy-Item -Path "$PSScriptRoot\$($Self.BatFileName)" -Destination $InstallPath -Force
+    Copy-Item -Path "$($RootConfigPath)\$($Self.FileName)" -Destination $InstallPath -Force
+    Copy-Item -Path "$($RootConfigPath)\$($Self.BatFileName)" -Destination $InstallPath -Force
     Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
 
     Write-Host "Adding '$InstallPath' to PATH"
     Set-PathVariable -AddPath $InstallPath
 
-    Write-Host "`nSuccessfully installed MonD $($Self.Version)"
+    Write-Host "Successfully installed MonD $($Self.Version)!"
+
+    if ($RmApi) {
+        $RmApi.Bang('[!DeactivateConfig]')
+    }
 
 }
 
@@ -1044,12 +1063,32 @@ function Format-SkinList {
     }
 }
 
+function Config {
+    Write-Host ""
+    $Self | ToIteratable | % { Write-Host "$($_.Name)`t $($_.Value)" }
+
+    Write-Host ""
+    Write-Host "Cache updated`t $($Cache.LastChecked)"
+    Write-Host "Skins in cache`t $(($Cache.Skins | ToIteratable | Measure-Object).Count)"
+    
+    Write-Host ""
+    Write-Host "SkinPath`t $($Cache.SkinPath)" 
+    Write-Host "SettingsPath`t $($Cache.SettingsPath)" 
+    Write-Host "ProgramPath`t $($Cache.ProgramPath)" 
+    Write-Host "ConfigEditor`t $($Cache.ConfigEditor)" 
+
+    return ""
+
+}
+
 # Main body
-if ($RmApi) { return }
+if ($RmApi) { 
+    if ($IsInstaller) {
+        InstallMetersOnDemand
+    }
+    return 
+}
 try {
-
-    if ($FirstTimeInstall) { return InstallMonD }
-
     # Commands that do not need the cache
     if ($Command -eq "version") { return Version }
     if ($Command -eq "help") { return Help }
@@ -1157,6 +1196,10 @@ try {
 
             Format-SkinList -Skins $found -Description
 
+            break
+        }
+        "config" {
+            Config
             break
         }
         Default {
