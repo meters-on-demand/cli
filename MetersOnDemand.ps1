@@ -82,7 +82,7 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.4";
+    Version       = "v1.2.4b";
     Directory     = "#Mond"; 
     FileName      = "MetersOnDemand.ps1"; 
     BatFileName   = "mond.bat"
@@ -337,11 +337,20 @@ function Get-Request {
 }
 
 function Get-Cache {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [switch]
+        $SkipCache 
+    )
+
     $Cache = [PSCustomObject]@{
         Skins      = [pscustomobject]@{ };
         Installed  = [pscustomobject]@{ };
         Updateable = [pscustomobject]@{ };
     }
+
+    if($SkipCache) { return $Cache }
 
     if (Test-Path -Path $cacheFile) {
         $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json
@@ -355,13 +364,18 @@ function Update-Cache {
         [Parameter()]
         [switch]
         $SkipInstalled,
+        [Parameter(ValueFromPipeline)]
+        [PSCustomObject]
+        $Cache,
         [Parameter()]
         [switch]
         $Force
     )
     if ($Cache -and !$Force) { return $Cache }
 
-    $Cache = Get-Cache
+    if(!$Cache) {
+        $Cache = Get-Cache
+    }
     
     $CurrentDate = Get-Date -Format "MM-dd-yy"
     if (!$Force -and ($Cache.LastChecked -eq $CurrentDate)) {
@@ -1006,11 +1020,12 @@ function InstallMetersOnDemand {
     Write-Host "/////////////////"
 
     Write-Host "Creating the cache"
-    $Cache = Update-Cache -Force
+    $Cache = Get-Cache
     $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value "$SkinPath" -Force
     $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value "$SettingsPath" -Force
     $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
     $Cache | Add-Member -MemberType NoteProperty -Name "ConfigEditor" -Value "$ConfigEditor" -Force
+    $Cache = Update-Cache -Cache $Cache -Force
     $Cache = Save-Cache -Cache $Cache
 
     Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
@@ -1100,7 +1115,7 @@ function Init {
     New-Item -ItemType Directory -Path $ResourcesPath
 
     # Create Mond.inc
-@"
+    @"
 [MonD]
 Author=
 PreviewImage=
@@ -1115,13 +1130,13 @@ HeaderImage=
 "@ | Out-File -FilePath "$($ResourcesPath)\Mond.inc"
 
     # Create the variables file
-@"
+    @"
 [Variables]
 
 "@ | Out-File -FilePath "$($ResourcesPath)\Variables.inc"
 
     # Create the skin
-@"
+    @"
 [Rainmeter]
 DefaultUpdateDivider=-1
 @IncludeVariables=#@#Variables.inc
@@ -1149,7 +1164,14 @@ Meter=Image
 # Main body
 if ($RmApi) { 
     if ($IsInstaller) {
-        InstallMetersOnDemand
+        try {
+            InstallMetersOnDemand
+        }
+        catch {
+            $RmApi.LogError("$($_)")
+            $_ | Out-File -FilePath $logFile -Append
+            $RmApi.Bang("[`"$($logFile)`"]")
+        }
     }
     return 
 }
