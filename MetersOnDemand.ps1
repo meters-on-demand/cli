@@ -82,7 +82,7 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.4b";
+    Version       = "v1.2.5";
     Directory     = "#Mond"; 
     FileName      = "MetersOnDemand.ps1"; 
     BatFileName   = "mond.bat"
@@ -1157,7 +1157,7 @@ Meter=Image
 "@ | Out-File -FilePath "$($ConfigPath)\$($SkinName).ini"
 
     # Open the created skin in the default config editor 
-    & "$($Cache.ConfigEditor)" "$ConfigPath"
+    Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "$ConfigPath"
 
 }
 
