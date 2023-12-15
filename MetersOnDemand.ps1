@@ -223,7 +223,7 @@ function Help {
         }
     )
 
-    if($Parameter -eq "dev") {
+    if ($Parameter -eq "dev") {
         Write-Host "MonD" -ForegroundColor White -NoNewline
         Write-Host " $($Self.Version) " -ForegroundColor Blue -NoNewline
         Write-Host "developer commands`n" -ForegroundColor White
@@ -357,14 +357,8 @@ function Get-Request {
         [string]
         $Uri
     )
-    try {
-        $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing
-        return $response
-    }
-    catch {
-        Write-Host $_
-        return $false
-    }
+    $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing
+    return $response
 }
 
 function Get-Cache {
@@ -392,12 +386,12 @@ function Get-Cache {
 
 function Update-Cache {
     param (
-        [Parameter()]
-        [switch]
-        $SkipInstalled,
         [Parameter(ValueFromPipeline)]
         [PSCustomObject]
         $Cache,
+        [Parameter()]
+        [switch]
+        $SkipInstalled,
         [Parameter()]
         [switch]
         $Force
@@ -411,12 +405,18 @@ function Update-Cache {
     $CurrentDate = Get-Date -Format "MM-dd-yy"
     if (!$Force -and ($Cache.LastChecked -eq $CurrentDate)) {
         if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
-        return $Cache 
+        return $Cache
     }
 
-    $response = Get-Request $skinsAPI
-    if (!$response) { 
-        Write-Host "Couldn't reach API, using cache..." -ForegroundColor Yellow
+    $response = $false
+    try {
+        $response = Get-Request $skinsAPI
+    }
+    catch {
+        Write-Exception $_
+        Write-Exception "Couldn't reach API, using cache..."
+    }
+    if (!$response) {
         if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
         return $Cache
     }
@@ -997,80 +997,106 @@ function Set-PathVariable {
     [System.Environment]::SetEnvironmentVariable('PATH', $value, $Scope)
 }
 
+function Write-Exception {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
+        [object]
+        $Exception,
+        [Parameter()]
+        [switch]
+        $Breaking
+    )
+    if (!$RmApi) { return Write-Error $Exception }
+    if ($Exception -is [System.Management.Automation.ErrorRecord]) {
+        $RmApi.LogWarning($Exception.ScriptStackTrace)
+    }
+    $RmApi.LogError($Exception)
+    if ($Breaking) {
+        $RmApi.Bang("[!About][!DeactivateConfig]")
+        exit
+    }
+}
+
 function InstallMetersOnDemand {
-    # When not running under PSRM
-    if (!$RmApi) {
-        $MissingParameters = $False   
-        if (!$SkinPath) { 
-            Write-Error "Please provide the path to the Skins folder in the -SkinPath parameter." 
-            $MissingParameters = $True
+    try {
+        # When not running under PSRM
+        if (!$RmApi) {
+            $MissingParameters = $False   
+            if (!$SkinPath) { 
+                Write-Error "Please provide the path to the Skins folder in the -SkinPath parameter." 
+                $MissingParameters = $True
+            }
+            if (!(Test-Path $SkinPath)) { 
+                Write-Error "SkinPath '$($SkinPath)' doesn't exist." 
+                $MissingParameters = $True
+            }
+            if (!$SettingsPath) { 
+                Write-Error "Please provide the path to Rainmeter.ini in the -SettingsPath parameter." 
+                $MissingParameters = $True
+            }
+            if (!$ProgramPath) { 
+                Write-Error "Please provide the path to Rainmeter.exe in the -ProgramPath parameter." 
+                $MissingParameters = $True
+            }
+            if (!$ConfigEditor) { 
+                Write-Error "Please provide the path to the executable of your desired ConfigEditor in the -ConfigEditor parameter."
+                Write-Error "For example: -ConfigEditor `"C:\Users\Reseptivaras\AppData\Local\Programs\Microsoft VS Code\Code.exe`"" 
+                $MissingParameters = $True
+            }
+            if ($MissingParameters) {
+                throw "One or multiple required parameters are missing!"
+            }
         }
-        if (!(Test-Path $SkinPath)) { 
-            Write-Error "SkinPath '$($SkinPath)' doesn't exist." 
-            $MissingParameters = $True
+
+        Write-Host "Installing Meters on Demand..."
+
+        # Remove trailing \ from Rainmeter paths
+        $SkinPath = "$SkinPath" -replace "\\$", ""
+        $SettingsPath = "$SettingsPath" -replace "\\$", ""
+        $RootConfigPath = "$RootConfigPath" -replace "\\$", ""
+
+        $InstallPath = "$SkinPath\$($Self.Directory)"
+        if (!(Test-Path $InstallPath)) {
+            New-Item -ItemType Directory -Path $InstallPath 
         }
-        if (!$SettingsPath) { 
-            Write-Error "Please provide the path to Rainmeter.ini in the -SettingsPath parameter." 
-            $MissingParameters = $True
-        }
-        if (!$ProgramPath) { 
-            Write-Error "Please provide the path to Rainmeter.exe in the -ProgramPath parameter." 
-            $MissingParameters = $True
-        }
-        if (!$ConfigEditor) { 
-            Write-Error "Please provide the path to the executable of your desired ConfigEditor in the -ConfigEditor parameter."
-            Write-Error "For example: -ConfigEditor `"C:\Users\Reseptivaras\AppData\Local\Programs\Microsoft VS Code\Code.exe`"" 
-            $MissingParameters = $True
-        }
-        if ($MissingParameters) {
-            throw "One or multiple required parameters are missing!"
+
+        # Write debug info
+        Write-Host "/////////////////"
+        Write-Host "Self $($Self)"
+        Write-Host "ScriptRoot: $($ScriptRoot)"
+        Write-Host "RootConfigPath: $($RootConfigPath)"
+        Write-Host "SkinPath: $($SkinPath)"
+        Write-Host "SettingsPath: $($SettingsPath)"
+        Write-Host "ProgramPath: $($ProgramPath)"
+        Write-Host "ConfigEditor: $($ConfigEditor)"
+        Write-Host "/////////////////"
+
+        Write-Host "Creating the cache"
+        $Cache = Get-Cache
+        $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value "$SkinPath" -Force
+        $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value "$SettingsPath" -Force
+        $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
+        $Cache | Add-Member -MemberType NoteProperty -Name "ConfigEditor" -Value "$ConfigEditor" -Force
+        $Cache = Update-Cache -Cache $Cache -Force
+        $Cache = Save-Cache -Cache $Cache
+
+        Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
+        Copy-Item -Path "$($RootConfigPath)\$($Self.FileName)" -Destination $InstallPath -Force
+        Copy-Item -Path "$($RootConfigPath)\$($Self.BatFileName)" -Destination $InstallPath -Force
+        Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
+
+        Write-Host "Adding '$InstallPath' to PATH"
+        Set-PathVariable -AddPath $InstallPath
+
+        Write-Host "Successfully installed MonD $($Self.Version)!"
+
+        if ($RmApi) {
+            $RmApi.Bang('[!About][!DeactivateConfig]')
         }
     }
-
-    Write-Host "Installing Meters on Demand..."
-
-    # Remove trailing \ from Rainmeter paths
-    $SkinPath = "$SkinPath" -replace "\\$", ""
-    $SettingsPath = "$SettingsPath" -replace "\\$", ""
-    $RootConfigPath = "$RootConfigPath" -replace "\\$", ""
-
-    $InstallPath = "$SkinPath\$($Self.Directory)"
-    if (!(Test-Path $InstallPath)) {
-        New-Item -ItemType Directory -Path $InstallPath 
-    }
-
-    # Write debug info
-    Write-Host "/////////////////"
-    Write-Host "Self $($Self)"
-    Write-Host "ScriptRoot: $($ScriptRoot)"
-    Write-Host "RootConfigPath: $($RootConfigPath)"
-    Write-Host "SkinPath: $($SkinPath)"
-    Write-Host "SettingsPath: $($SettingsPath)"
-    Write-Host "ProgramPath: $($ProgramPath)"
-    Write-Host "ConfigEditor: $($ConfigEditor)"
-    Write-Host "/////////////////"
-
-    Write-Host "Creating the cache"
-    $Cache = Get-Cache
-    $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value "$SkinPath" -Force
-    $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value "$SettingsPath" -Force
-    $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
-    $Cache | Add-Member -MemberType NoteProperty -Name "ConfigEditor" -Value "$ConfigEditor" -Force
-    $Cache = Update-Cache -Cache $Cache -Force
-    $Cache = Save-Cache -Cache $Cache
-
-    Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
-    Copy-Item -Path "$($RootConfigPath)\$($Self.FileName)" -Destination $InstallPath -Force
-    Copy-Item -Path "$($RootConfigPath)\$($Self.BatFileName)" -Destination $InstallPath -Force
-    Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
-
-    Write-Host "Adding '$InstallPath' to PATH"
-    Set-PathVariable -AddPath $InstallPath
-
-    Write-Host "Successfully installed MonD $($Self.Version)!"
-
-    if ($RmApi) {
-        $RmApi.Bang('[!DeactivateConfig]')
+    catch {
+        Write-Exception -Exception $_ -Breaking
     }
 
 }
