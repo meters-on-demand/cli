@@ -38,6 +38,9 @@ uninstall [-Skin] <full_name> [-Force]
 restore [-Skin] <full_name> [-Force]
  restores an upgraded or uninstalled skin from @Backup
 
+init [-Skin] <skin_name>
+ creates a new skin folder from a template in #SKINSPATH# and opens it using your #CONFIGEDITOR#
+
 package [[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-Version <>]
  Creates an .rmskin package of the specified skin.
  Scans the skin files for plugins used and can be customized using a mond.inc configuration file.

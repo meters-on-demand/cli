@@ -188,7 +188,12 @@ function Help {
             Name        = "restore"
             Signature   = "$skinSig $forceSig"
             Description = "restores an upgraded or uninstalled skin from $($Removed)"
-        }, 
+        },
+        [pscustomobject]@{
+            Name = "init"
+            Signature = "[-Skin] <skin_name>"
+            Description = "creates a new skin folder from a template in #SKINSPATH# and opens it using your #CONFIGEDITOR#"
+        },
         [pscustomobject]@{
             Name        = "package"
             Signature   = "[[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-PackageVersion <>]"
