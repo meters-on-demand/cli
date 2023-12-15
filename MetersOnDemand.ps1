@@ -82,12 +82,16 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.5";
-    Directory     = "#Mond"; 
-    FileName      = "MetersOnDemand.ps1"; 
+    Version       = "v1.2.5"
+    Directory     = "#Mond"
+    FileName      = "MetersOnDemand.ps1"
     BatFileName   = "mond.bat"
     TempDirectory = "#Mond\temp"
     Repository    = "meters-on-demand/cli"
+}
+
+$Installer = [PSCustomObject]@{
+    SkinName = "Meters on Demand"
 }
 
 $Cache = $false
@@ -190,8 +194,8 @@ function Help {
             Description = "restores an upgraded or uninstalled skin from $($Removed)"
         },
         [pscustomobject]@{
-            Name = "init"
-            Signature = "[-Skin] <skin_name>"
+            Name        = "init"
+            Signature   = "[-Skin] <skin_name>"
             Description = "creates a new skin folder from a template in #SKINSPATH# and opens it using your #CONFIGEDITOR#"
         },
         [pscustomobject]@{
@@ -210,6 +214,28 @@ function Help {
             Description = "show this help"
         }
     )
+
+    $devCommands = @(
+        [pscustomobject]@{
+            Name        = "refresh"
+            Signature   = ""
+            Description = "Loads the Meters on Demand installer skin"
+        }
+    )
+
+    if($Parameter -eq "dev") {
+        Write-Host "MonD" -ForegroundColor White -NoNewline
+        Write-Host " $($Self.Version) " -ForegroundColor Blue -NoNewline
+        Write-Host "developer commands`n" -ForegroundColor White
+    
+        foreach ($command in $devCommands) {
+            Write-Host "$($command.name) " -ForegroundColor White -NoNewline
+            Write-Host "$($command.signature) " -ForegroundColor Cyan
+            Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
+            Write-Host "`n"
+        }
+        return
+    }
 
     if ($Parameter) {
         $command = $commands | Where-Object { $_.Name -eq $Parameter }
@@ -355,7 +381,7 @@ function Get-Cache {
         Updateable = [pscustomobject]@{ };
     }
 
-    if($SkipCache) { return $Cache }
+    if ($SkipCache) { return $Cache }
 
     if (Test-Path -Path $cacheFile) {
         $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json
@@ -378,7 +404,7 @@ function Update-Cache {
     )
     if ($Cache -and !$Force) { return $Cache }
 
-    if(!$Cache) {
+    if (!$Cache) {
         $Cache = Get-Cache
     }
     
@@ -1166,6 +1192,10 @@ Meter=Image
 
 }
 
+function Refresh {
+    Start-Process -FilePath "$($Cache.ProgramPath)" -ArgumentList "[!ActivateConfig `"$($Installer.SkinName)`"]"
+}
+
 # Main body
 if ($RmApi) { 
     if ($IsInstaller) {
@@ -1221,6 +1251,10 @@ try {
                 throw "Usage: mond init SkinName"
             }
             Init -SkinName $Parameter
+            break
+        }
+        "refresh" {
+            Refresh
             break
         }
         "list" {
