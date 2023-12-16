@@ -8,50 +8,7 @@ the Rainmeter package manager. Install skins directly from the command line!
 
 Download the latest .rmskin from [releases](https://github.com/meters-on-demand/cli/releases).
 
-MonD installs through Rainmeter so it can get the #SKINSPATH# and #SETTINGSPATH# variables, to detect which skins you have installed. And as MonD is a skin manager, it can update itself through itself.
-
-# Usage
-
-To use MonD, you need to use the command line. Both `cmd` and `powershell` work. You can try `mond version` to test that MonD installed correctly.
-
-Notice that if you had your terminal open before running the installer, you need to reopen it to make Windows detect the MonD script.
-
-```shell
-install [-Skin] <full_name> [-Force]
-# installs the specified skin
-
-list
-# lists installed skins
-
-search [-Query] <keyword> [-Property <property>]
-# searches the skin list
-
-update [-Force]
-# updates the skins list
-
-upgrade [-Skin] <full_name> [-Force]
-# upgrades the specified skin
-
-uninstall [-Skin] <full_name> [-Force]
-# uninstalls the specified skin
-
-restore [-Skin] <full_name> [-Force]
-# restores an upgraded or uninstalled skin from @Backup
-
-init [-Skin] <skin_name>
-# creates a new skin folder from a template
-
-package [[-Skin] <rootconfig>] [...]
-# Creates an .rmskin package of the specified skin.
-
-version
-# prints the MonD version
-
-help [-Command]
-# shows this help
-```
-
-Check out the [Meters on Demand wiki](https://docs.rainmeter.skin/) for more information.
+Check out the [Meters on Demand wiki](https://docs.rainmeter.skin/) for more information and usage instructions.
 
 # Contributing
 
