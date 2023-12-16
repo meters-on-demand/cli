@@ -16,44 +16,42 @@ To use MonD, you need to use the command line. Both `cmd` and `powershell` work.
 
 Notice that if you had your terminal open before running the installer, you need to reopen it to make Windows detect the MonD script.
 
-```sh
-update [-Force]
- updates the skins list
-
+```shell
 install [-Skin] <full_name> [-Force]
- installs the specified skin
+# installs the specified skin
 
 list
- lists installed skins
+# lists installed skins
 
 search [-Query] <keyword> [-Property <property>]
- searches the skin list
+# searches the skin list
+
+update [-Force]
+# updates the skins list
 
 upgrade [-Skin] <full_name> [-Force]
- upgrades the specified skin
+# upgrades the specified skin
 
 uninstall [-Skin] <full_name> [-Force]
- uninstalls the specified skin
+# uninstalls the specified skin
 
 restore [-Skin] <full_name> [-Force]
- restores an upgraded or uninstalled skin from @Backup
+# restores an upgraded or uninstalled skin from @Backup
 
 init [-Skin] <skin_name>
- creates a new skin folder from a template in #SKINSPATH# and opens it using your #CONFIGEDITOR#
+# creates a new skin folder from a template
 
-package [[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-Version <>]
- Creates an .rmskin package of the specified skin.
- Scans the skin files for plugins used and can be customized using a mond.inc configuration file.
- Please see 'https://github.com/meters-on-demand/cli/wiki/Package' for further documentation.
+package [[-Skin] <rootconfig>] [...]
+# Creates an .rmskin package of the specified skin.
 
 version
- prints the MonD version
+# prints the MonD version
 
 help [-Command]
- show this help
+# shows this help
 ```
 
-Check out the [API wiki](https://github.com/meters-on-demand/mond-api/wiki) for more information about how the backend works. There's also a [guide to the package command](https://github.com/meters-on-demand/cli/wiki/Package) which is strongly recommended for skin developers.
+Check out the [Meters on Demand wiki](https://docs.rainmeter.skin/) for more information.
 
 # TO-DO:
 

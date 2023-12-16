@@ -82,23 +82,29 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.5"
+    Version       = "v1.2.6"
     Directory     = "#Mond"
     FileName      = "MetersOnDemand.ps1"
     BatFileName   = "mond.bat"
     TempDirectory = "#Mond\temp"
     Repository    = "meters-on-demand/cli"
+    Wiki          = "https://docs.rainmeter.skin"
 }
 
 $Installer = [PSCustomObject]@{
     SkinName = "Meters on Demand"
 }
 
+$Api = [PSCustomObject]@{
+    Url       = "https://api.rainmeter.skin"
+    Endpoints = [PSCustomObject]@{
+        Skins = "https://api.rainmeter.skin/skins"
+    }
+    Wiki      = "https://docs.rainmeter.skin/api"
+}
+
 $Cache = $false
 $Removed = "@Backup"
-
-# URLs
-$skinsAPI = "https://api.rainmeter.skin/skins"
 
 # If running under PSRM in Rainmeter
 if ($RmApi) {
@@ -146,16 +152,15 @@ function Version { Write-Host "MonD $($Self.Version)" -ForegroundColor Blue }
 
 function Help {
 
-    $PackageWiki = 'https://github.com/meters-on-demand/cli/wiki/Package'
 
     $PowerShellVersion = $PSVersionTable.PSVersion
     if ($PowerShellVersion.Major -lt 5) {
         Write-Host "You are running PowerShell $($PowerShellVersion) which is outdated. PowerShell 5 or 7 is recommended.`n" -ForegroundColor Yellow
     }
 
-    # $skinSig = "[[-Skin] <full_name>]"
     $skinSig = "[-Skin] <full_name>"
     $forceSig = "[-Force]"
+    $packageWiki = "https://docs.rainmeter.skin/cli/package"
 
     $commands = @(
         [pscustomobject]@{
@@ -201,7 +206,7 @@ function Help {
         [pscustomobject]@{
             Name        = "package"
             Signature   = "[[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-PackageVersion <>]"
-            Description = "Creates an .rmskin package of the specified skin.`n Scans the skin files for plugins used and can be customized using a mond.inc configuration file.`n Please see '$($PackageWiki)' for further documentation."
+            Description = "Creates an .rmskin package of the specified skin.`n Scans the skin files for plugins used and can be customized using a mond.inc configuration file.`n Use 'mond help package' to open the package wiki."
         }, 
         [pscustomobject]@{
             Name        = "version"
@@ -240,9 +245,12 @@ function Help {
     if ($Parameter) {
         $command = $commands | Where-Object { $_.Name -eq $Parameter }
         if (!$command) { throw "$($Parameter) is not a command. Use 'mond help' to see all available commands." }
-        if ($Parameter -eq "package") { Start-Process "$($PackageWiki)" }
-        Write-Host "$($command.name) " -ForegroundColor White -NoNewline
-        Write-Host "$($command.signature) " -ForegroundColor Cyan
+        if ($Parameter -eq "package") { 
+            Start-Process "$($packageWiki)"
+            return
+        }
+        Write-Host "$($command.Name) " -ForegroundColor White -NoNewline
+        Write-Host "$($command.Signature) " -ForegroundColor Cyan
         Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
         return
     }
@@ -258,11 +266,8 @@ function Help {
         Write-Host "`n"
     }
     
-    Write-Host "Check out the mond-cli wiki! " -NoNewline
-    Write-Host "https://github.com/meters-on-demand/cli/wiki" -ForegroundColor Blue
-
-    Write-Host "Also check out the API wiki! " -NoNewline
-    Write-Host "https://github.com/meters-on-demand/mond-api/wiki" -ForegroundColor Blue
+    Write-Host "Check out the Meters on Demand wiki! " -NoNewline
+    Write-Host $Self.Wiki -ForegroundColor Blue
 
     return 
 }
@@ -410,7 +415,7 @@ function Update-Cache {
 
     $response = $false
     try {
-        $response = Get-Request $skinsAPI
+        $response = Get-Request $Api.Endpoints.Skins
     }
     catch {
         Write-Exception $_
