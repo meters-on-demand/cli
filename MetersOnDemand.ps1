@@ -1342,7 +1342,7 @@ try {
             if ($OutDirectory -and !(Test-Path -Path "$($OutDirectory)")) {
                 throw "Invalid -OutputDirectory" 
             }
-            if ($OutPath -notmatch "\\|\/") { $OutPath = ".\$($OutPath)" }
+            if ($OutPath -and ($OutPath -notmatch "\\|\/")) { $OutPath = ".\$($OutPath)" }
             if ($OutPath -and !(Test-Path -Path "$(Split-Path $OutPath)")) {
                 throw "Invalid -Output"
             }
