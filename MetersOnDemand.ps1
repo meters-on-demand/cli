@@ -203,13 +203,13 @@ function Help {
             Name        = "init"
             Signature   = "[-Skin] <skin_name>"
             Description = "creates a new skin folder from a template"
-            Wiki = $initWiki
+            Wiki        = $initWiki
         },
         [pscustomobject]@{
             Name        = "package"
             Signature   = "[[-Skin] <rootconfig>] [...]"
             Description = "creates a .rmskin package of the specified skin"
-            Wiki = $packageWiki
+            Wiki        = $packageWiki
         }, 
         [pscustomobject]@{
             Name        = "version"
@@ -228,6 +228,16 @@ function Help {
             Name        = "refresh"
             Signature   = ""
             Description = "Loads the Meters on Demand installer skin"
+        },
+        [pscustomobject]@{
+            Name        = "config"
+            Signature   = ""
+            Description = "Prints debug information of the main $($Self.FileName) script"
+        },
+        [pscustomobject]@{
+            Name        = "lock"
+            Signature   = "$($skinSig)"
+            Description = "Generates a .lock.inc file for the specified skin"
         }
     )
 
@@ -262,7 +272,7 @@ function Help {
         Write-Host "$($command.name) " -ForegroundColor White -NoNewline
         Write-Host "$($command.signature) " -ForegroundColor Cyan
         Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
-        if($command.Wiki) {
+        if ($command.Wiki) {
             Write-Host "`n $($command.Wiki)" -ForegroundColor Blue -NoNewline
         }
         Write-Host "`n"
@@ -1229,6 +1239,67 @@ function Refresh {
     Start-Process -FilePath "$($Cache.ProgramPath)" -ArgumentList "[!ActivateConfig `"$($Installer.SkinName)`"]"
 }
 
+function New-Lock {
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath,
+        [Parameter(Mandatory)]
+        [string]
+        $RootConfig
+    )
+
+    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig $RootConfig
+
+    $outputFile = "$($SkinPath)\$($RootConfig)\.lock.inc"
+
+    $output = "[Plugins]"
+
+    foreach ($plugin in $plugins.Keys) {
+        $vault = "$($SkinPath)\@Vault"
+        $pluginDirectory = "$($vault)\Plugins\$($plugin)"
+        if (!(Test-Path -Path $pluginDirectory)) {
+            Write-Host "Skipping $($plugin), it's either built-in to Rainmeter (safe to ignore) or not installed." -ForegroundColor Yellow
+        }
+        else {
+            $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
+            $latest = "$($versions[0])"
+            $output += "`n$($plugin)=$($latest)"
+        }
+    }
+
+    $output | Out-File -FilePath $outputFile
+
+}
+
+function Assert-SkinPath {
+    if ($Parameter -and !$Skin) {
+        $Skin = $Parameter
+    }
+
+    $SkinPath = $Cache.SkinPath
+
+    $workingParent = Split-Path -Path $pwd
+    if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Skin)) {
+        throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Skin parameter!"
+    }
+    
+    $workingName = Split-Path -Path $pwd -Leaf
+    $RootConfig = $workingName
+    if ($Skin) { $RootConfig = $Skin }
+
+    return $RootConfig
+}
+
+function Limit-PowerShellVersion {
+
+    $PowerShellVersion = $PSVersionTable.PSVersion
+    if ($PowerShellVersion.Major -lt 5) {
+        Write-Warning "`nYou are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n"
+    }
+
+}
+
 # Main body
 if ($RmApi) { 
     if ($IsInstaller) {
@@ -1320,26 +1391,15 @@ try {
             Restore -FullName $Parameter -Cache $Cache -Force:$Force
             break
         }
+        "lock" {
+            $RootConfig = Assert-SkinPath
+
+            New-Lock -SkinPath $Cache.SkinPath -RootConfig $RootConfig
+        }
         "package" {
-            if ($Parameter -and !$Skin) {
-                $Skin = $Parameter
-            }
+            Limit-PowerShellVersion
 
-            $PowerShellVersion = $PSVersionTable.PSVersion
-            if ($PowerShellVersion.Major -lt 5) {
-                Write-Warning "`nYou are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n"
-            }
-
-            $SkinPath = $Cache.SkinPath
-
-            $workingParent = Split-Path -Path $pwd
-            if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Skin)) {
-                throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Skin parameter!"
-            }
-            
-            $workingName = Split-Path -Path $pwd -Leaf
-            $RootConfig = $workingName
-            if ($Skin) { $RootConfig = $Skin }
+            $RootConfig = Assert-SkinPath
 
             if ($OutDirectory -and !(Test-Path -Path "$($OutDirectory)")) {
                 throw "Invalid -OutputDirectory" 
@@ -1349,7 +1409,7 @@ try {
                 throw "Invalid -Output"
             }
 
-            New-Skin -SkinPath $SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath
+            New-Skin -SkinPath $Cache.SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath
             break
         }
         "search" {
