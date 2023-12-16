@@ -161,6 +161,7 @@ function Help {
     $skinSig = "[-Skin] <full_name>"
     $forceSig = "[-Force]"
     $packageWiki = "https://docs.rainmeter.skin/cli/package"
+    $initWiki = "https://docs.rainmeter.skin/cli/init"
 
     $commands = @(
         [pscustomobject]@{
@@ -201,12 +202,14 @@ function Help {
         [pscustomobject]@{
             Name        = "init"
             Signature   = "[-Skin] <skin_name>"
-            Description = "creates a new skin folder from a template in #SKINSPATH# and opens it using your #CONFIGEDITOR#"
+            Description = "creates a new skin folder from a template"
+            Wiki = $initWiki
         },
         [pscustomobject]@{
             Name        = "package"
-            Signature   = "[[-Skin] <rootconfig>] [-LoadType <>] [-Load <>] [-VariableFiles <>] [-MinimumRainmeter <>] [-MinimumWindows <>] [-Author <>] [-HeaderImage <>] [-PackageVersion <>]"
-            Description = "Creates an .rmskin package of the specified skin.`n Scans the skin files for plugins used and can be customized using a mond.inc configuration file.`n Use 'mond help package' to open the package wiki."
+            Signature   = "[[-Skin] <rootconfig>] [...]"
+            Description = "creates a .rmskin package of the specified skin"
+            Wiki = $packageWiki
         }, 
         [pscustomobject]@{
             Name        = "version"
@@ -255,14 +258,13 @@ function Help {
         return
     }
 
-    Write-Host "MonD" -ForegroundColor White -NoNewline
-    Write-Host " $($Self.Version) " -ForegroundColor Blue -NoNewline
-    Write-Host "commands`n" -ForegroundColor White
-
     foreach ($command in $commands) {
         Write-Host "$($command.name) " -ForegroundColor White -NoNewline
         Write-Host "$($command.signature) " -ForegroundColor Cyan
         Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
+        if($command.Wiki) {
+            Write-Host "`n $($command.Wiki)" -ForegroundColor Blue -NoNewline
+        }
         Write-Host "`n"
     }
     
