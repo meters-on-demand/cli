@@ -82,7 +82,7 @@ param (
 
 # Globals
 $Self = [PSCustomObject]@{ 
-    Version       = "v1.2.6"
+    Version       = "v1.3.0"
     Directory     = "#Mond"
     FileName      = "MetersOnDemand.ps1"
     BatFileName   = "mond.bat"
