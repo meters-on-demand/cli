@@ -225,9 +225,14 @@ function Help {
 
     $devCommands = @(
         [pscustomobject]@{
-            Name        = "refresh"
-            Signature   = ""
-            Description = "Loads the Meters on Demand installer skin"
+            Name        = "open"
+            Signature   = "$($skinSig)"
+            Description = "Opens the specified skins #ROOTCONFIG# in your #CONFIGEDITOR#"
+        },
+        [pscustomobject]@{
+            Name        = "lock"
+            Signature   = "$($skinSig)"
+            Description = "Generates a .lock.inc file for the specified skin"
         },
         [pscustomobject]@{
             Name        = "config"
@@ -235,9 +240,19 @@ function Help {
             Description = "Prints debug information of the main $($Self.FileName) script"
         },
         [pscustomobject]@{
-            Name        = "lock"
-            Signature   = "$($skinSig)"
-            Description = "Generates a .lock.inc file for the specified skin"
+            Name        = ""
+            Signature   = "<property>"
+            Description = "Prints the specified property if it's present in MetersOnDemand.ps1 `$Self or the mond cache.json"
+        },
+        [pscustomobject]@{
+            Name        = "dir"
+            Signature   = ""
+            Description = "Opens #SKINSPATH#\$($Self.Directory)"
+        },
+        [pscustomobject]@{
+            Name        = "refresh"
+            Signature   = ""
+            Description = "Reinstalls Meters on Demand"
         }
     )
 
@@ -773,6 +788,72 @@ function Get-SkinInfo {
     return $RMSKIN
 }
 
+function Test-BuiltIn {
+    param(
+        [Parameter(Mandatory)]
+        [string]
+        $Plugin,
+        [Parameter(Mandatory)]
+        [string]
+        $RainmeterDirectory
+    )
+
+    $builtInPlugins = Get-ChildItem -Path "$($RainmeterDirectory)\Plugins\*"
+
+    foreach ($p in $builtInPlugins) {
+        if ($p.BaseName -match "$($Plugin)") {
+            return $True
+        }
+    }
+
+    return $False
+
+}
+
+function Get-LatestPlugin {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]
+        $SkinPath,
+        [Parameter()]
+        [string]
+        $RainmeterDirectory
+    )
+
+    $vault = "$($SkinPath)\@Vault"
+    if (!(Test-Path $vault)) { throw "@Vault directory is missing!" }
+
+    $pluginDirectory = "$($vault)\Plugins\$($plugin)"
+
+    if (!(Test-Path -Path $pluginDirectory)) {
+        if(!$RainmeterDirectory) {
+            Write-Host "Can't test if plugin is built-in without -RainmeterDirectory"
+            Write-Host "Plugin $($plugin) is either built-in or not installed"
+            return $false
+        }
+        if (Test-BuiltIn -Plugin $plugin -RainmeterDirectory $RainmeterDirectory) {
+            # Maybe log?
+        }
+        else {
+            Write-Host "Skipping $($plugin), it's either a built-in measure (safe to ignore) or not installed." -ForegroundColor Yellow
+        }
+        return $false
+    }
+
+    $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
+    $latestVersion = "$($versions[0].BaseName)"
+    $latestPath = "$($pluginDirectory)\$($latestVersion)"
+    $latest = [PSCustomObject]@{
+        Name    = $plugin
+        Version = $latestVersion
+        Path    = $latestPath
+        x86     = "$($latestPath)\32bit"
+        x64     = "$($latestPath)\64bit"
+    }
+    return $latest
+}
+
 function Get-Plugins { 
     param (
         [Parameter(Mandatory)]
@@ -815,7 +896,10 @@ function New-Skin {
         $SettingsPath,
         [Parameter(Mandatory)]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter()]
+        [string]
+        $RainmeterDirectory
     )
 
     # Find rootconfig
@@ -876,17 +960,11 @@ Name=$($RMSKIN.SkinName)
         Write-Host "`nCollecting plugins for package..." -ForegroundColor Blue
     }
     foreach ($plugin in $plugins.Keys) {
-        $vault = "$($SkinPath)\@Vault"
-        $pluginDirectory = "$($vault)\Plugins\$($plugin)"
-        if (!(Test-Path -Path $pluginDirectory)) {
-            Write-Warning "Skipping $($plugin), it's either built-in to Rainmeter (safe to ignore) or not installed."
-        }
-        else {
-            $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
-            $latest = "$($pluginDirectory)\$($versions[0])"
-            Copy-Item -Path "$($latest)\32bit\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
-            Copy-Item -Path "$($latest)\64bit\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
-            Write-Host "Copied $plugin $($versions[0])"
+        $latest = Get-LatestPlugin -SkinPath $SkinPath -RainmeterDirectory $Cache.RainmeterDirectory
+        if ($latest) {
+            Copy-Item -Path "$($latest.x86)\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
+            Copy-Item -Path "$($latest.x64)\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
+            Write-Host "Copied $plugin $($latest.Version)"
         }
     }
 
@@ -1078,6 +1156,8 @@ function InstallMetersOnDemand {
             New-Item -ItemType Directory -Path $InstallPath 
         }
 
+        $RainmeterDirectory = Split-Path -Path $ProgramPath -Parent
+
         # Write debug info
         Write-Host "/////////////////"
         Write-Host "Self $($Self)"
@@ -1086,6 +1166,7 @@ function InstallMetersOnDemand {
         Write-Host "SkinPath: $($SkinPath)"
         Write-Host "SettingsPath: $($SettingsPath)"
         Write-Host "ProgramPath: $($ProgramPath)"
+        Write-Host "RainmeterDirectory: $($RainmeterDirectory)"
         Write-Host "ConfigEditor: $($ConfigEditor)"
         Write-Host "/////////////////"
 
@@ -1094,6 +1175,7 @@ function InstallMetersOnDemand {
         $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value "$SkinPath" -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value "$SettingsPath" -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
+        $Cache | Add-Member -MemberType NoteProperty -Name "RainmeterDirectory" -Value "$RainmeterDirectory" -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "ConfigEditor" -Value "$ConfigEditor" -Force
         $Cache = Update-Cache -Cache $Cache -Force
         $Cache = Save-Cache -Cache $Cache
@@ -1246,7 +1328,10 @@ function New-Lock {
         $SkinPath,
         [Parameter(Mandatory)]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter()]
+        [string]
+        $RainmeterDirectory
     )
 
     $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig $RootConfig
@@ -1256,15 +1341,9 @@ function New-Lock {
     $output = "[Plugins]"
 
     foreach ($plugin in $plugins.Keys) {
-        $vault = "$($SkinPath)\@Vault"
-        $pluginDirectory = "$($vault)\Plugins\$($plugin)"
-        if (!(Test-Path -Path $pluginDirectory)) {
-            Write-Host "Skipping $($plugin), it's either built-in to Rainmeter (safe to ignore) or not installed." -ForegroundColor Yellow
-        }
-        else {
-            $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
-            $latest = "$($versions[0])"
-            $output += "`n$($plugin)=$($latest)"
+        $latest = Get-LatestPlugin -SkinPath $SkinPath -RainmeterDirectory $RainmeterDirectory
+        if ($latest) {
+            $output += "`n$($plugin)=$($latest.Version)"
         }
     }
 
@@ -1297,6 +1376,35 @@ function Limit-PowerShellVersion {
     if ($PowerShellVersion.Major -lt 5) {
         Write-Warning "`nYou are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n"
     }
+
+}
+
+function Test-DevCommand {
+
+    if ($Command -eq "dir") { 
+        Start-Process -FilePath "explorer.exe" -ArgumentList "$($Cache.SkinPath)\$($Self.Directory)"
+        return $True
+    }
+
+    if ($Self.$Command) {
+        Write-Host $Self.$Command
+        return $True
+    }
+    if ($Cache.$Command) {
+        Write-Host $Cache.$Command
+        return $True
+    }
+
+    if ($Command -eq "open") {
+        $RootConfig = Assert-SkinPath
+        $p = "$($Cache.SkinPath)\$($RootConfig)"
+        if (Test-Path -Path $p) {
+            Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "$p"
+            return $True
+        }
+    }
+
+    return $False
 
 }
 
@@ -1393,8 +1501,7 @@ try {
         }
         "lock" {
             $RootConfig = Assert-SkinPath
-
-            New-Lock -SkinPath $Cache.SkinPath -RootConfig $RootConfig
+            New-Lock -SkinPath $Cache.SkinPath -RootConfig $RootConfig -RainmeterDirectory $Cache.RainmeterDirectory
         }
         "package" {
             Limit-PowerShellVersion
@@ -1409,7 +1516,7 @@ try {
                 throw "Invalid -Output"
             }
 
-            New-Skin -SkinPath $Cache.SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath
+            New-Skin -SkinPath $Cache.SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath -RainmeterDirectory $Cache.RainmeterDirectory
             break
         }
         "search" {
@@ -1431,6 +1538,7 @@ try {
             break
         }
         Default {
+            if (Test-DevCommand) { return }
             Write-Host "$Command" -ForegroundColor Red -NoNewline
             Write-Host " is not a command! Use" -NoNewline 
             Write-Host " MonD help " -ForegroundColor Blue -NoNewline
@@ -1441,5 +1549,7 @@ try {
 }
 catch {
     $_ | Out-File -FilePath $logFile -Append 
-    Write-Host $_
+    # Write-Host $_
+    Write-Error $_
+    Write-Host $_.ScriptStackTrace
 }
