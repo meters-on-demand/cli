@@ -48,3 +48,6 @@ Check the TO-DO below if you want to help!
 - Installer header and GitHub splash background image by [MA SH](https://www.artstation.com/artwork/L36yml)
 - RMSKIN footer code from [auto-rmskin-package](https://github.com/brianferguson/auto-rmskin-package/blob/master/.github/workflows/release.yml) by [@brianferguson](https://github.com/brianferguson)
 - Logo design by [@creepertron95](https://github.com/creepertron95) with edits by Jeff
+- Testers and complainers
+  - [@modkavartini](https://github.com/modkavartini)
+  - [@keifufu](https://github.com/keifufu)
