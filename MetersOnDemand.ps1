@@ -89,6 +89,9 @@ $Self = [PSCustomObject]@{
     TempDirectory = "#Mond\temp"
     Repository    = "meters-on-demand/cli"
     Wiki          = "https://docs.rainmeter.skin"
+    Modules       = "modules"
+    Commands      = "commands"
+    CacheFile     = "cache.json"
 }
 
 $Installer = [PSCustomObject]@{
@@ -103,6 +106,10 @@ $Api = [PSCustomObject]@{
     Wiki      = "https://docs.rainmeter.skin/api"
 }
 
+$Commands = [PSCustomObject]@{
+    Name = "Value"
+}
+
 $Cache = $false
 $Removed = "@Backup"
 
@@ -111,26 +118,36 @@ if ($RmApi) {
     $SkinPath = "$($RmApi.VariableStr("SKINSPATH"))"
     $SettingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))"
     $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))"
-    $ProgramPath = "$($RmApi.VariableStr("PROGRAMPATH"))Rainmeter.exe"
+    $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))"
+    $ProgramPath = "$($RainmeterDirectory)Rainmeter.exe"
     $IsInstaller = $RmApi.Variable("MetersOnDemand.Install") -eq 1
-
     # The installed ScriptRoot
     $ScriptRoot = "$SkinPath$($Self.Directory)"
     # For copying the script files from the right place
-    $RootConfigPath = "$($RmApi.VariableStr("ROOTCONFIGPATH"))"
+    $RootConfigPath = "$($RmApi.VariableStr("ROOTCONFIGPATH"))" -replace "\\$"
 }
-if (!$RmApi) { 
+else { 
     if (!$PSScriptRoot) {
-        throw "`$PSScriptRoot is not set???" 
+        throw "`$PSScriptRoot is not set??? Where am I?? Where is `$SkinPath\$($Self.Directory)???" 
     }
     $ScriptRoot = $PSScriptRoot
     $RootConfigPath = $PSScriptRoot
 }
 
 # Files
-$cacheFile = "$($ScriptRoot)\cache.json"
+$cacheFile = "$($ScriptRoot)\$($Self.CacheFile)"
 $logFile = "$($ScriptRoot)\mond.log"
 $skinFile = "$($ScriptRoot)\skin.rmskin"
+
+# Load modules
+Get-ChildItem "$($RootConfigPath)\$($Self.Modules)\*" | % {
+    . "$($_)"
+}
+
+# Load commands
+Get-ChildItem "$($RootConfigPath)\$($Self.Commands)\*" | % {
+    . "$($_)"
+}
 
 function Update {
     if (!$RmApi) {
@@ -146,971 +163,6 @@ function Update {
     Write-Host "Updating MonD cache!"
     Update-Cache
     return $Self.Version
-}
-
-function Version { Write-Host "MonD $($Self.Version)" -ForegroundColor Blue }
-
-function Help {
-
-
-    $PowerShellVersion = $PSVersionTable.PSVersion
-    if ($PowerShellVersion.Major -lt 5) {
-        Write-Host "You are running PowerShell $($PowerShellVersion) which is outdated. PowerShell 5 or 7 is recommended.`n" -ForegroundColor Yellow
-    }
-
-    $skinSig = "[-Skin] <full_name>"
-    $forceSig = "[-Force]"
-    $packageWiki = "https://docs.rainmeter.skin/cli/package"
-    $initWiki = "https://docs.rainmeter.skin/cli/init"
-
-    $commands = @(
-        [pscustomobject]@{
-            Name        = "update"
-            Signature   = "$forceSig"
-            Description = "updates the skins list"
-        }, 
-        [pscustomobject]@{
-            Name        = "install"
-            Signature   = "$skinSig $forceSig"
-            Description = "installs the specified skin"
-        }, 
-        [pscustomobject]@{
-            Name        = "list"
-            Signature   = ""
-            Description = "lists installed skins"
-        }, 
-        [pscustomobject]@{
-            Name        = "search"
-            Signature   = "[-Query] <keyword> [-Property <property>]"
-            Description = "searches the skin list"
-        }, 
-        [pscustomobject]@{
-            Name        = "upgrade"
-            Signature   = "$skinSig $forceSig"
-            Description = "upgrades the specified skin"
-        }, 
-        [pscustomobject]@{
-            Name        = "uninstall"
-            Signature   = "$skinSig $forceSig"
-            Description = "uninstalls the specified skin"
-        }, 
-        [pscustomobject]@{
-            Name        = "restore"
-            Signature   = "$skinSig $forceSig"
-            Description = "restores an upgraded or uninstalled skin from $($Removed)"
-        },
-        [pscustomobject]@{
-            Name        = "init"
-            Signature   = "[-Skin] <skin_name>"
-            Description = "creates a new skin folder from a template"
-            Wiki        = $initWiki
-        },
-        [pscustomobject]@{
-            Name        = "package"
-            Signature   = "[[-Skin] <rootconfig>] [...]"
-            Description = "creates a .rmskin package of the specified skin"
-            Wiki        = $packageWiki
-        }, 
-        [pscustomobject]@{
-            Name        = "version"
-            Signature   = ""
-            Description = "prints the MonD version"
-        },
-        [pscustomobject]@{
-            Name        = "help"
-            Signature   = "[-Command]"
-            Description = "show this help"
-        }
-    )
-
-    $devCommands = @(
-        [pscustomobject]@{
-            Name        = "open"
-            Signature   = "$($skinSig)"
-            Description = "Opens the specified skins #ROOTCONFIG# in your #CONFIGEDITOR#"
-        },
-        [pscustomobject]@{
-            Name        = "lock"
-            Signature   = "$($skinSig)"
-            Description = "Generates a .lock.inc file for the specified skin"
-        },
-        [pscustomobject]@{
-            Name        = "config"
-            Signature   = ""
-            Description = "Prints debug information of the main $($Self.FileName) script"
-        },
-        [pscustomobject]@{
-            Name        = ""
-            Signature   = "<property>"
-            Description = "Prints the specified property if it's present in MetersOnDemand.ps1 `$Self or the mond cache.json"
-        },
-        [pscustomobject]@{
-            Name        = "dir"
-            Signature   = ""
-            Description = "Opens #SKINSPATH#\$($Self.Directory)"
-        },
-        [pscustomobject]@{
-            Name        = "refresh"
-            Signature   = ""
-            Description = "Reinstalls Meters on Demand"
-        }
-    )
-
-    if ($Parameter -eq "dev") {
-        Write-Host "MonD" -ForegroundColor White -NoNewline
-        Write-Host " $($Self.Version) " -ForegroundColor Blue -NoNewline
-        Write-Host "developer commands`n" -ForegroundColor White
-    
-        foreach ($command in $devCommands) {
-            Write-Host "$($command.name) " -ForegroundColor White -NoNewline
-            Write-Host "$($command.signature) " -ForegroundColor Cyan
-            Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
-            Write-Host "`n"
-        }
-        return
-    }
-
-    if ($Parameter) {
-        $command = $commands | Where-Object { $_.Name -eq $Parameter }
-        if (!$command) { throw "$($Parameter) is not a command. Use 'mond help' to see all available commands." }
-        if ($Parameter -eq "package") { 
-            Start-Process "$($packageWiki)"
-            return
-        }
-        Write-Host "$($command.Name) " -ForegroundColor White -NoNewline
-        Write-Host "$($command.Signature) " -ForegroundColor Cyan
-        Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
-        return
-    }
-
-    foreach ($command in $commands) {
-        Write-Host "$($command.name) " -ForegroundColor White -NoNewline
-        Write-Host "$($command.signature) " -ForegroundColor Cyan
-        Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
-        if ($command.Wiki) {
-            Write-Host "`n $($command.Wiki)" -ForegroundColor Blue -NoNewline
-        }
-        Write-Host "`n"
-    }
-    
-    Write-Host "Check out the Meters on Demand wiki! " -NoNewline
-    Write-Host $Self.Wiki -ForegroundColor Blue
-
-    return 
-}
-
-function Get-SkinObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
-        [string]
-        $FullName,
-        [Parameter()]
-        [psobject]
-        $Cache
-    )
-    if (!$Cache) { $Cache = Update-Cache -SkipInstalled }
-
-    $Skins = $Cache.Skins
-    $Skin = $Skins.$FullName
-
-    if (-not $Skin) { throw "No skin named $($FullName) found" }
-    return $Skin
-}
-
-function Download {
-    param (
-        [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
-        [string]
-        $FullName,
-        [Parameter()]
-        [psobject]
-        $Cache
-    )
-    if (!$Cache) { $Cache = Update-Cache -SkipInstalled }
-
-    $Skin = Get-SkinObject $FullName -Cache $Cache
-
-    Write-Host "Downloading $($Skin.full_name)"
-
-    Invoke-WebRequest -Uri $Skin.latest_release.browser_download_url -OutFile $skinFile
-
-    return $skinFile
-}
-
-function Install {
-    param (
-        [Parameter(Mandatory, Position = 0)]
-        [string]
-        $FullName,
-        [Parameter()]
-        [pscustomobject]
-        $Cache,
-        [Parameter()]
-        [switch]
-        $Force,
-        [Parameter()]
-        [Switch]
-        $FirstMatch
-    )
-    if (!$Cache) { $Cache = Update-Cache }
-
-    if ($FirstMatch) {
-        $Matched = Search -Query $FullName -Cache $Cache -Quiet
-        if ($Matched.Length -gt 1) { throw "Too many results, use a more specific query" }
-        if ($Matched.Length -eq 0) { throw "No results" }
-        $FullName = $Matched[0].full_name
-    }
-
-    $installed = $Cache.Installed.$FullName
-    if ($installed -and (-not $Force)) {
-        return Write-Host "$($FullName) is already installed. Use -Force to reinstall." -ForegroundColor Yellow
-    }
-
-    $Skin = Get-SkinObject -FullName $FullName -Cache $Cache
-    $latest = $Skin.latest_release.tag_name
-
-    $Installed = $Cache.Installed
-    if ($installed -ne $latest) {
-        $Installed | Add-Member -MemberType NoteProperty -Name "$FullName" -Value $latest -Force
-        $Cache | Add-Member -MemberType NoteProperty -Name "Installed" -Value $Installed -Force
-        $Cache.Updateable.psobject.properties.Remove($FullName)
-        $Cache = Save-Cache $Cache
-    }
-
-    Download -FullName $FullName -Cache $Cache
-    Start-Process -FilePath $skinFile
-
-}
-
-function Get-Request {
-    param(
-        [Parameter(Position = 0)]
-        [string]
-        $Uri
-    )
-    $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing
-    return $response
-}
-
-function Get-Cache {
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [switch]
-        $SkipCache 
-    )
-
-    $Cache = [PSCustomObject]@{
-        Skins      = [pscustomobject]@{ };
-        Installed  = [pscustomobject]@{ };
-        Updateable = [pscustomobject]@{ };
-    }
-
-    if ($SkipCache) { return $Cache }
-
-    if (Test-Path -Path $cacheFile) {
-        $Cache = Get-Content -Path $cacheFile  | ConvertFrom-Json
-    }
-
-    return $Cache
-}
-
-function Update-Cache {
-    param (
-        [Parameter(ValueFromPipeline)]
-        [PSCustomObject]
-        $Cache,
-        [Parameter()]
-        [switch]
-        $SkipInstalled,
-        [Parameter()]
-        [switch]
-        $Force
-    )
-    if ($Cache -and !$Force) { return $Cache }
-
-    if (!$Cache) {
-        $Cache = Get-Cache
-    }
-    
-    $CurrentDate = Get-Date -Format "MM-dd-yy"
-    if (!$Force -and ($Cache.LastChecked -eq $CurrentDate)) {
-        if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
-        return $Cache
-    }
-
-    $response = $false
-    try {
-        $response = Get-Request $Api.Endpoints.Skins
-    }
-    catch {
-        Write-Exception $_
-        Write-Exception "Couldn't reach API, using cache..."
-    }
-    if (!$response) {
-        if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
-        return $Cache
-    }
-
-    $SkinsArray = $response.Content | ConvertFrom-Json
-    # PSCustomObject bullshit
-    $Skins = [PSCustomObject]@{ }
-    $SkinsArray | % {
-        $Skins | Add-Member -MemberType NoteProperty -Name "$($_.full_name)" -Value $_
-    }
-
-    $Cache | Add-Member -MemberType NoteProperty -Name 'Skins' -Value $Skins -Force
-    $Cache | Add-Member -MemberType NoteProperty -Name 'LastChecked' -Value $CurrentDate -Force
-
-    if (-not $Cache.Installed) { $Cache | Add-Member -MemberType NoteProperty -Name 'Installed' -Value ([PSCustomObject] @{ }) }
-    if (-not $Cache.Updateable) { $Cache | Add-Member -MemberType NoteProperty -Name 'Updateable' -Value ([PSCustomObject] @{ }) }
-
-    $Cache = Get-InstalledSkins -Cache $Cache
-
-    return Save-Cache $Cache
-}
-
-function Get-InstalledSkins {
-    param (
-        [Parameter(Mandatory)]
-        [pscustomobject]
-        $Cache
-    )
-
-    $SkinPath = $Cache.SkinPath
-    $Installed = $Cache.Installed
-    $Updateable = [PSCustomObject]@{ }
-
-    if (!(Test-Path -Path $SkinPath)) {
-        throw "SkinPath ($SkinPath) does not exist"
-    }
-
-    $NewInstalled = ([PSCustomObject] @{ })
-    $skinFolders = Get-ChildItem -Path "$($SkinPath)" -Directory 
-    $IteratableSkins = ToIteratable -Object $Cache.Skins
-    foreach ($skinFolder in $skinFolders) {
-        foreach ($Entry in $IteratableSkins) {
-            $Skin = $Entry.Value
-            if ($Skin.skin_name -notlike $skinFolder.name) { continue }
-            $full_name = $Skin.full_name
-            $existing = $Cache.Installed.$full_name
-            $latest = $Skin.latest_release.tag_name
-            if ($existing) {
-                $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $existing
-                if ($existing -ne $latest) { 
-                    $Updateable | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
-                }
-            }
-            else { 
-                $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
-            }
-        }
-    }
-
-    $Cache | Add-Member -MemberType noteproperty -Name 'Installed' -Value $NewInstalled -Force
-    $Cache | Add-Member -MemberType noteproperty -Name 'Updateable' -Value $Updateable -Force
-
-    return $Cache
-
-}
-
-function Save-Cache {
-    param (
-        [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
-        [PSCustomObject]
-        $Cache
-    )
-    $Cache | ConvertTo-Json -Depth 4 | Out-File -FilePath $cacheFile
-    return $Cache
-}
-
-function RemovedDirectory {
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath
-    )
-
-    $removedDirectory = "$($SkinPath)\$($Removed)"
-    if (-not(Test-Path -Path $removedDirectory)) {
-        New-Item -Path $removedDirectory -ItemType Directory
-    }
-    return $removedDirectory
-}
-
-function Uninstall {
-    param (
-        [Parameter(Mandatory, Position = 0)]
-        [string]
-        $FullName,
-        [Parameter(Mandatory)]
-        [psobject]
-        $Cache,
-        [Parameter()]
-        [switch]
-        $Force
-    )
-    if (!$Cache) { $Cache = Update-Cache }
-
-    $installed = $Cache.Installed.$FullName
-    if (-not $installed) { 
-        if ($Force) { return }
-        throw "Skin $FullName is not installed"
-    }
-
-    $skinPath = $Cache.SkinPath
-    $skinName = $Cache.Skins.$FullName.skin_name
-
-    $removedDirectory = RemovedDirectory -SkinPath $skinPath
-    $path = "$($skinPath)\$($skinName)"
-    $target = "$($removedDirectory)\$($skinName)"
-    if (Test-Path -Path "$($target)") {
-        Remove-Item -Path "$($target)" -Recurse -Force
-    }
-    Move-Item -Path "$($path)" -Destination $removedDirectory
-
-    # Update cache
-    $Cache.Installed.psobject.properties.Remove($FullName)
-    $Cache.Updateable.psobject.properties.Remove($FullName)
-    $Cache = Save-Cache $Cache
-
-    # Report results
-    Write-Host "Uninstalled $($FullName)"
-    Write-Host "Use 'mond restore $($FullName)' to restore"
-}
-
-function Restore {
-    param (
-        [Parameter(Mandatory, Position = 0)]
-        [string]
-        $FullName,
-        [Parameter()]
-        [psobject]
-        $Cache,
-        [Parameter()]
-        [switch]
-        $Force
-    )
-    if (!$Cache) { $Cache = Update-Cache }
-    
-    $skinPath = $Cache.SkinPath
-    $skinName = $Cache.Skins.$FullName.skin_name
-
-    $removedDirectory = RemovedDirectory -SkinPath $skinPath
-    $restorePath = "$($removedDirectory)\$($skinName)"
-    $restoreTarget = "$($skinPath)\$($skinName)"
-    if (-not (Test-Path -Path "$($restorePath)")) {
-        if ($Force) { return }
-        throw "Cannot restore: $($FullName) was not found in $($Removed)."
-    }
-    if (Test-Path -Path "$($restoreTarget)") {
-        if ($Force) {
-            Remove-Item -Path "$($restoreTarget)" -Recurse -Force
-        }
-        else {
-            throw "Cannot restore: $($FullName) is already installed. Use -Force to overwrite."
-        }
-    }
-    Move-Item -Path "$($restorePath)" -Destination $skinPath -Force
-
-    # Update cache
-    $Cache = Get-InstalledSkins -Cache $Cache
-    $Cache = Save-Cache $Cache
-
-    # Report results
-    Write-Host "Restored $($FullName)"
-}
-
-function Upgrade {
-    param (
-        [Parameter(Mandatory, Position = 0)]
-        [string]
-        $FullName,
-        [Parameter()]
-        [switch]
-        $Force
-    )
-    if (!$Cache) { $Cache = Update-Cache }
-
-    $Skin = Get-SkinObject $FullName
-
-    $installed = $Cache.Installed.($Skin.full_name)
-
-    if (!$installed) {
-        throw "$($FullName) is not installed"
-    }
-    if (!$Force -and !($Cache.Updateable.($Skin.full_name))) {
-        throw "$($FullName) $($installed) is the latest version"
-    }
-
-    Install -FullName $FullName -Cache $Cache -Force
-
-}
-
-function Search {
-    param (
-        [Parameter(Position = 0)]
-        [string]
-        $Query,
-        [Parameter(Position = 1)]
-        [string]
-        $Property,
-        [Parameter(Mandatory)]
-        [psobject]
-        $Cache,
-        [Parameter()]
-        [Switch]
-        $Quiet
-    )
-    if (!$Query) { $Query = ".*" }
-    if (!$Property) { $Property = "full_name" }
-
-    if (!$Cache) { $Cache = Update-Cache }
-
-    if (!$Quiet) { Write-Host "Searching for `"$Query`"" }
-
-    $Results = @()
-    foreach ($Entry in ToIteratable -Object $Cache.Skins ) {
-        $Skin = $Entry.Value
-        if ($Skin.$Property -match $Query) { $Results += $Skin }
-    }
-    return $Results
-}
-
-function ToIteratable {
-    param(
-        [Parameter(Mandatory, Position = 1, ValueFromPipeline)]
-        [pscustomobject]
-        $Object
-    )
-    $Members = $Object.psobject.Members | Where-Object membertype -like 'noteproperty'
-    return $Members
-}
-
-function Get-MondInc {
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath,
-        [Parameter(Mandatory)]
-        [string]
-        $RootConfig
-    )
-    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
-
-    if (Test-Path "$($RootConfigPath)\mond.inc") {
-        return "$($RootConfigPath)\mond.inc"
-    }
-    if (Test-Path "$($RootConfigPath)\@Resources\mond.inc") {
-        return "$($RootConfigPath)\@Resources\mond.inc"
-    }
-    return $False
-}
-
-function Clear-Temp {
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath
-    )
-    $temp = "$($SkinPath)\$($Self.TempDirectory)"
-
-    if (!(Test-Path -Path "$temp")) {
-        New-Item -ItemType Directory -Path $temp
-    }
-    Remove-Item -Path "$temp\*" -Recurse
-}
-
-function Get-SkinInfo {
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath,
-        [Parameter(Mandatory)]
-        [string]
-        $RootConfig
-    )
-
-    $Overrides = @{
-        Author           = "$Author"
-        Version          = "$PackageVersion"
-        LoadType         = "$LoadType"
-        Load             = "$Load"
-        VariableFiles    = "$VariableFiles"
-        MinimumRainmeter = "$MinimumRainmeter"
-        MinimumWindows   = "$MinimumWindows"
-        HeaderImage      = "$HeaderImage"
-        Exclude          = "$Exclude"
-    }
-
-    $RMSKIN = @{
-        SkinName         = $RootConfig
-        Author           = $null
-        Version          = $null
-        LoadType         = $null
-        Load             = $null
-        VariableFiles    = $null
-        MinimumRainmeter = "4.5.17"
-        MinimumWindows   = "5.1"
-        HeaderImage      = $null
-        Exclude          = ""
-        MergeSkins       = $null
-    }
-
-    $mondinc = Get-MondInc -SkinPath $SkinPath -RootConfig "$RootConfig"
-    
-    if ($mondinc) {
-        Get-Content -Path $mondinc | ForEach-Object {
-            $s = $_ -split "="
-            $option = "$($s[0])".Trim().ToLower()
-            $value = "$($s[1])".Trim()
-            if ($option -in @("variablefiles", "headerimage")) {
-                $value = $value -replace "#@#\\", "$($RootConfig)\@Resources\"
-                $value = $value -replace "#@#", "$($RootConfig)\@Resources\"
-            }
-            if ($option -in $RMSKIN.Keys) {
-                $RMSKIN[$option] = $value
-            }
-        }
-    }
-
-    foreach ($option in $Overrides.GetEnumerator()) {
-        if ($option.Value) {
-            $RMSKIN[$option.Name] = $option.Value
-        }
-    }
-
-    # Handle MergeSkins
-    if ($MergeSkins) { $RMSKIN["MergeSkins"] = 1 }
-    if ($RMSKIN.MergeSkins) { $RMSKIN.Remove("VariableFiles") }
-
-    return $RMSKIN
-}
-
-function Test-BuiltIn {
-    param(
-        [Parameter(Mandatory)]
-        [string]
-        $Plugin,
-        [Parameter(Mandatory)]
-        [string]
-        $RainmeterDirectory
-    )
-
-    $builtInPlugins = Get-ChildItem -Path "$($RainmeterDirectory)\Plugins\*"
-
-    foreach ($p in $builtInPlugins) {
-        if ($p.BaseName -match "$($Plugin)") {
-            return $True
-        }
-    }
-
-    return $False
-
-}
-
-function Get-LatestPlugin {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath,
-        [Parameter()]
-        [string]
-        $RainmeterDirectory
-    )
-
-    $vault = "$($SkinPath)\@Vault"
-    if (!(Test-Path $vault)) { throw "@Vault directory is missing!" }
-
-    $pluginDirectory = "$($vault)\Plugins\$($plugin)"
-
-    if (!(Test-Path -Path $pluginDirectory)) {
-        if(!$RainmeterDirectory) {
-            Write-Host "Can't test if plugin is built-in without -RainmeterDirectory"
-            Write-Host "Plugin $($plugin) is either built-in or not installed"
-            return $false
-        }
-        if (Test-BuiltIn -Plugin $plugin -RainmeterDirectory $RainmeterDirectory) {
-            # Maybe log?
-        }
-        else {
-            Write-Host "Skipping $($plugin), it's either a built-in measure (safe to ignore) or not installed." -ForegroundColor Yellow
-        }
-        return $false
-    }
-
-    $versions = Get-ChildItem -Directory -Path $pluginDirectory | Sort-Object -Descending
-    $latestVersion = "$($versions[0].BaseName)"
-    $latestPath = "$($pluginDirectory)\$($latestVersion)"
-    $latest = [PSCustomObject]@{
-        Name    = $plugin
-        Version = $latestVersion
-        Path    = $latestPath
-        x86     = "$($latestPath)\32bit"
-        x64     = "$($latestPath)\64bit"
-    }
-    return $latest
-}
-
-function Get-Plugins { 
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath,
-        [Parameter(Mandatory)]
-        [string]
-        $RootConfig
-    )
-    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
-
-    $plugins = @{}
-
-    $files = Get-ChildItem -Path "$RootConfigPath" -Recurse -File -Include *.inc, *.ini
-
-    $PP = '^\s*(?i)plugin\s*=\s*(.*)$'
-
-    $files | ForEach-Object {
-        $lines = $_ | Get-Content
-        $lines | ForEach-Object {
-            if ($_ -match $PP) {
-                $plugin = "$($Matches[1])".ToLower()
-                $plugin = $plugin -replace "\.dll$", ""
-                $plugin = $plugin -replace "^plugins[\\\/]", ""
-                $plugins[$plugin] = $True
-            }
-        }
-    }
-
-    return $plugins
-}
-
-function New-Skin {
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath,
-        [Parameter(Mandatory)]
-        [string]
-        $SettingsPath,
-        [Parameter(Mandatory)]
-        [string]
-        $RootConfig,
-        [Parameter()]
-        [string]
-        $RainmeterDirectory
-    )
-
-    # Find rootconfig
-    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
-    if (!(Test-Path -Path $RootConfigPath)) { 
-        throw "RootConfigPath '$($RootConfigPath)' does not exist." 
-    }
-    Write-Host "Found ROOTCONFIG at " -NoNewline -ForegroundColor Gray 
-    Write-Host "$RootConfigPath" -ForegroundColor White
-
-    # Get skin information
-    $RMSKIN = Get-SkinInfo -SkinPath $SkinPath -RootConfig "$RootConfig"
-    Write-Host "`nSkin information:" -ForegroundColor Blue
-    # $RMSKIN
-
-    # Temp path
-    $temp = "$($SkinPath)\$($Self.TempDirectory)"
-    Clear-Temp -SkinPath $SkinPath
-
-    # Create RMSKIN.ini
-    $ini = @"
-[rmskin]
-Name=$($RMSKIN.SkinName)
-"@
-
-    $ignoredOptions = @("Ignore", "HeaderImage", "SkinName")
-    foreach ($option in $RMSKIN.GetEnumerator()) {
-        if (("$($option.Name)" -notin $ignoredOptions) -and ($option.Value)) {
-            $append = "$($option.Name)=$($option.Value)"
-            Write-Host $append
-            $ini += "`n$append"
-        }
-    }
-    $ini | Out-File -FilePath "$($temp)\RMSKIN.ini"
-
-    # Copy the skin
-    $__ = New-Item -ItemType Directory -Path "$($temp)\Skins"
-    $__ = New-Item -ItemType Directory -Path "$($temp)\Skins\$($RootConfig)"
-
-    # Exclude files
-    $excluded = @(".git", ".gitignore")
-    if ($RMSKIN.Exclude) {
-        "$($RMSKIN.Exclude)" -split ",|\|" | % { $excluded += "$($_)".Trim() }
-    }
-    Copy-Item -Path "$($RootConfigPath)\*" -Destination "$($temp)\Skins\$($RootConfig)" -Exclude $excluded -Recurse
-    # Write-Host "`nCopied '$($RootConfig)' skin files"
-    
-    # Get plugins
-    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig "$RootConfig"
-    Write-Host "`nDetected plugins used in skin:" -ForegroundColor Blue
-    Write-Host $plugins.Keys
-
-    # Copy the plugins
-    $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins"
-    $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\32bit"
-    $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\64bit"
-    if ($plugins.Length) {
-        Write-Host "`nCollecting plugins for package..." -ForegroundColor Blue
-    }
-    foreach ($plugin in $plugins.Keys) {
-        $latest = Get-LatestPlugin -SkinPath $SkinPath -RainmeterDirectory $Cache.RainmeterDirectory
-        if ($latest) {
-            Copy-Item -Path "$($latest.x86)\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
-            Copy-Item -Path "$($latest.x64)\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
-            Write-Host "Copied $plugin $($latest.Version)"
-        }
-    }
-
-    # Copy the header image
-    $header = $RMSKIN.HeaderImage
-    if ($header -match "^$RootConfig") {
-        $header = "$($SkinPath)\$($header)"
-    }
-    if ($header) {
-        Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
-        Write-Host "`nCopied header image to RMSKIN.bmp"
-    }
-
-    # Copy the layout
-    if ("$($RMSKIN.LoadType)".ToLower() -eq "layout") {
-        $layoutname = $RMSKIN.Load
-        $layout = "$($SettingsPath)\Layouts\$($layoutname)"
-        if (!(Test-Path -Path "$layout")) { throw "Layout '$($layoutname)' doesn't exist" }
-        $__ = New-Item -ItemType Directory -Path "$($temp)\Layouts"
-        Copy-Item -Path "$layout" -Recurse -Destination "$($temp)\Layouts"
-        Write-Host "Included the '$($layoutname)' layout"
-    }
-
-    # Override output name
-    $filename = "$($RMSKIN.SkinName)"
-    if ($RMSKIN.Version) { $filename += " $($RMSKIN.Version)" }
-    if ($OutFile) { $filename = $OutFile -replace ".rmskin$", "" }
-    $filename += ".rmskin"
-
-    $archive = "$($temp)\skin.zip"
-    Write-Host "`nCreating .zip archive..."
-    Compress-Archive -CompressionLevel Optimal -Path "$($temp)\*" -DestinationPath $archive
-
-    Add-RMfooter -Target $archive
-    Write-Host "`nSkin package created!" -ForegroundColor Green
-
-    # Override output directory
-    $dir = "$($env:USERPROFILE)\Desktop"
-    if ($OutDirectory) {
-        $dir = $OutDirectory -replace "\\$", ""
-    }
-
-    # Override entire output path
-    if ($OutPath) {
-        $dir = Split-Path $OutPath
-        $filename = ("$(Split-Path $OutPath -Leaf)" -replace ".rmskin$", "") + ".rmskin"
-    }
-
-    $OutputPath = "$($dir)\$($filename)"
-
-    Move-Item -Path "$($temp)\skin.rmskin" -Destination $OutputPath -Force
-
-    Clear-Temp -SkinPath $SkinPath
-
-    Write-Host "Final output at: " -NoNewline
-    Write-Host "'$($OutputPath)'" -ForegroundColor White
-
-}
-
-function Add-RMfooter {
-    param (
-        [Parameter()]
-        [string]
-        $Target
-    )
-
-    $AsByteStream = $True
-    if ($PSVersionTable.PSVersion.Major -lt 6) {
-        $AsByteStream = $False
-    }    
-
-    # Yoinked from https://github.com/brianferguson/auto-rmskin-package/blob/master/.github/workflows/release.yml
-    Write-Output "Writing security flags..."
-    $size = [long](Get-Item $Target).length
-    $size_bytes = [System.BitConverter]::GetBytes($size)
-    if ($AsByteStream) {
-        Add-Content -Path $Target -Value $size_bytes -AsByteStream
-    }
-    else {
-        Add-Content -Path $Target -Value $size_bytes -Encoding Byte
-    }
-
-    $flags = [byte]0
-
-    if ($AsByteStream) {
-        Add-Content -Path $Target -Value $flags -AsByteStream
-    }
-    else {
-        Add-Content -Path $Target -Value $flags -Encoding Byte
-    }
-
-    $rmskin = [string]"RMSKIN`0"
-    Add-Content -Path $Target -Value $rmskin -NoNewLine -Encoding ASCII
-
-    Write-Output "Renaming .zip to .rmskin..."
-    Rename-Item -Path $Target -NewName ([io.path]::ChangeExtension($Target, '.rmskin'))
-    $Target = $Target.Replace(".zip", ".rmskin")
-}
-
-# https://github.com/ThePoShWolf/Utilities/blob/master/Misc/Set-PathVariable.ps1
-# Added |^$ to filter out empty items in $arrPath
-# Removed the $Scope param and added a static [System.EnvironmentVariableTarget]::User
-function Set-PathVariable {
-    param (
-        [string]$AddPath,
-        [string]$RemovePath
-    )
-
-    $Scope = [System.EnvironmentVariableTarget]::User
-
-    $regexPaths = @()
-    if ($PSBoundParameters.Keys -contains 'AddPath') {
-        $regexPaths += [regex]::Escape($AddPath)
-    }
-    
-    if ($PSBoundParameters.Keys -contains 'RemovePath') {
-        $regexPaths += [regex]::Escape($RemovePath)
-    }
-        
-    $arrPath = [System.Environment]::GetEnvironmentVariable('PATH', $Scope) -split ';'
-    foreach ($path in $regexPaths) {
-        $arrPath = $arrPath | Where-Object { $_ -notMatch "^$path\\?| ^$" }
-    }
-    $value = ($arrPath + $addPath) -join ';'
-    [System.Environment]::SetEnvironmentVariable('PATH', $value, $Scope)
-}
-
-function Write-Exception {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
-        [object]
-        $Exception,
-        [Parameter()]
-        [switch]
-        $Breaking
-    )
-    if (!$RmApi) { return Write-Error $Exception }
-    if ($Exception -is [System.Management.Automation.ErrorRecord]) {
-        $RmApi.LogWarning($Exception.ScriptStackTrace)
-    }
-    $RmApi.LogError($Exception)
-    if ($Breaking) {
-        $RmApi.Bang("[!About][!DeactivateConfig]")
-        exit
-    }
 }
 
 function InstallMetersOnDemand {
@@ -1142,6 +194,7 @@ function InstallMetersOnDemand {
             if ($MissingParameters) {
                 throw "One or multiple required parameters are missing!"
             }
+            $RainmeterDirectory = Split-Path -Path $ProgramPath -Parent
         }
 
         Write-Host "Installing Meters on Demand..."
@@ -1150,13 +203,16 @@ function InstallMetersOnDemand {
         $SkinPath = "$SkinPath" -replace "\\$", ""
         $SettingsPath = "$SettingsPath" -replace "\\$", ""
         $RootConfigPath = "$RootConfigPath" -replace "\\$", ""
+        $RainmeterDirectory = "$RainmeterDirectory" -replace "\\$", ""
 
         $InstallPath = "$SkinPath\$($Self.Directory)"
-        if (!(Test-Path $InstallPath)) {
+        if (Test-Path -Path $InstallPath) {
+            Remove-Item -Path $InstallPath -Recurse
+            New-Item -Path $InstallPath -ItemType Directory
+        }
+        else {
             New-Item -ItemType Directory -Path $InstallPath 
         }
-
-        $RainmeterDirectory = Split-Path -Path $ProgramPath -Parent
 
         # Write debug info
         Write-Host "/////////////////"
@@ -1171,7 +227,7 @@ function InstallMetersOnDemand {
         Write-Host "/////////////////"
 
         Write-Host "Creating the cache"
-        $Cache = Get-Cache
+        $Cache = New-Cache
         $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value "$SkinPath" -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value "$SettingsPath" -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
@@ -1180,9 +236,16 @@ function InstallMetersOnDemand {
         $Cache = Update-Cache -Cache $Cache -Force
         $Cache = Save-Cache -Cache $Cache
 
-        Write-Host "Copying '$($Self.FileName)' & '$($Self.BatFileName)' to '$InstallPath'"
+        Write-Host "Copying script files to '$InstallPath'"
+        Write-Host "Copying $($Self.FileName)"
         Copy-Item -Path "$($RootConfigPath)\$($Self.FileName)" -Destination $InstallPath -Force
+        Write-Host "Copying $($Self.BatFileName)"
         Copy-Item -Path "$($RootConfigPath)\$($Self.BatFileName)" -Destination $InstallPath -Force
+        Write-Host "Copying $($Self.Modules)"
+        Copy-Item -Path "$($RootConfigPath)\$($Self.Modules)" -Recurse -Destination $InstallPath -Force
+        Write-Host "Copying $($Self.Commands)"
+        Copy-Item -Path "$($RootConfigPath)\$($Self.Commands)" -Recurse -Destination $InstallPath -Force
+        Write-Host "Copying $($Self.CacheFile)"
         Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
 
         Write-Host "Adding '$InstallPath' to PATH"
@@ -1197,215 +260,6 @@ function InstallMetersOnDemand {
     catch {
         Write-Exception -Exception $_ -Breaking
     }
-
-}
-
-function Format-SkinList {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        [PSCustomObject]
-        $Skins,
-        [Parameter()]
-        [Switch]
-        $NewLine,
-        [Parameter()]
-        [Switch]
-        $Description
-    )
-
-    $Skins | Sort-Object -Property "full_name" | ForEach-Object {
-        Write-Host $_.full_name -ForegroundColor Blue -NoNewline
-        $current = $_.latest_release.tag_name
-        $versionColor = "Gray"
-        $installed = $Cache.Installed.($_.full_name)
-        $updateable = $Cache.Updateable.($_.full_name)
-        if ($installed) {
-            $current = $installed
-            $versionColor = "Green"
-        }
-        Write-Host " $($current)" -ForegroundColor $versionColor -NoNewline
-
-        if ($updateable) { Write-Host " ($($updateable) available)" -ForegroundColor Yellow }
-        else { Write-Host "" }
-
-        if ($Description) { Write-Host "$($_.description)" }
-        if ($NewLine) { Write-Host "" }
-    }
-}
-
-function Config {
-    Write-Host ""
-    $Self | ToIteratable | % { Write-Host "$($_.Name)`t $($_.Value)" }
-
-    Write-Host ""
-    Write-Host "Cache updated`t $($Cache.LastChecked)"
-    Write-Host "Skins in cache`t $(($Cache.Skins | ToIteratable | Measure-Object).Count)"
-    
-    Write-Host ""
-    Write-Host "SkinPath`t $($Cache.SkinPath)" 
-    Write-Host "SettingsPath`t $($Cache.SettingsPath)" 
-    Write-Host "ProgramPath`t $($Cache.ProgramPath)" 
-    Write-Host "ConfigEditor`t $($Cache.ConfigEditor)" 
-
-    return ""
-
-}
-
-function Init {
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [string]
-        $SkinName
-    )
-
-    $ConfigPath = "$($Cache.SkinPath)\$($SkinName)"
-    $ResourcesPath = "$($ConfigPath)\@Resources"
-
-    if (Test-Path -Path $ConfigPath) {
-        throw "Skin already exists."
-    }
-
-    New-Item -ItemType Directory -Path $ConfigPath
-    New-Item -ItemType Directory -Path $ResourcesPath
-
-    # Create Mond.inc
-    @"
-[MonD]
-Author=
-PreviewImage=
-ProfilePicture=
-Description=
-
-SkinName=$($SkinName)
-LoadType=Skin
-Load=$($SkinName)\$($SkinName).ini
-Version=v1.0.0
-HeaderImage=
-"@ | Out-File -FilePath "$($ResourcesPath)\Mond.inc"
-
-    # Create the variables file
-    @"
-[Variables]
-
-"@ | Out-File -FilePath "$($ResourcesPath)\Variables.inc"
-
-    # Create the skin
-    @"
-[Rainmeter]
-DefaultUpdateDivider=-1
-@IncludeVariables=#@#Variables.inc
-
-[Metadata]
-Name=$($SkinName)
-Author=
-Information=
-Version=1.0.0
-License=Creative Commons Attribution-Non-Commercial-Share Alike 3.0
-
-[Variables]
-Scale=1
-
-[ummy]
-Meter=Image
-
-"@ | Out-File -FilePath "$($ConfigPath)\$($SkinName).ini"
-
-    # Open the created skin in the default config editor 
-    Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "$ConfigPath"
-
-}
-
-function Refresh {
-    Start-Process -FilePath "$($Cache.ProgramPath)" -ArgumentList "[!ActivateConfig `"$($Installer.SkinName)`"]"
-}
-
-function New-Lock {
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SkinPath,
-        [Parameter(Mandatory)]
-        [string]
-        $RootConfig,
-        [Parameter()]
-        [string]
-        $RainmeterDirectory
-    )
-
-    $plugins = Get-Plugins -SkinPath $SkinPath -RootConfig $RootConfig
-
-    $outputFile = "$($SkinPath)\$($RootConfig)\.lock.inc"
-
-    $output = "[Plugins]"
-
-    foreach ($plugin in $plugins.Keys) {
-        $latest = Get-LatestPlugin -SkinPath $SkinPath -RainmeterDirectory $RainmeterDirectory
-        if ($latest) {
-            $output += "`n$($plugin)=$($latest.Version)"
-        }
-    }
-
-    $output | Out-File -FilePath $outputFile
-
-}
-
-function Assert-SkinPath {
-    if ($Parameter -and !$Skin) {
-        $Skin = $Parameter
-    }
-
-    $SkinPath = $Cache.SkinPath
-
-    $workingParent = Split-Path -Path $pwd
-    if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Skin)) {
-        throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Skin parameter!"
-    }
-    
-    $workingName = Split-Path -Path $pwd -Leaf
-    $RootConfig = $workingName
-    if ($Skin) { $RootConfig = $Skin }
-
-    return $RootConfig
-}
-
-function Limit-PowerShellVersion {
-
-    $PowerShellVersion = $PSVersionTable.PSVersion
-    if ($PowerShellVersion.Major -lt 5) {
-        Write-Warning "`nYou are running PowerShell $($PowerShellVersion) which might have issues packaging skins. PowerShell 7 is recommended.`n"
-    }
-
-}
-
-function Test-DevCommand {
-
-    if ($Command -eq "dir") { 
-        Start-Process -FilePath "explorer.exe" -ArgumentList "$($Cache.SkinPath)\$($Self.Directory)"
-        return $True
-    }
-
-    if ($Self.$Command) {
-        Write-Host $Self.$Command
-        return $True
-    }
-    if ($Cache.$Command) {
-        Write-Host $Cache.$Command
-        return $True
-    }
-
-    if ($Command -eq "open") {
-        $RootConfig = Assert-SkinPath
-        $p = "$($Cache.SkinPath)\$($RootConfig)"
-        if (Test-Path -Path $p) {
-            Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "$p"
-            return $True
-        }
-    }
-
-    return $False
-
 }
 
 # Main body
@@ -1454,7 +308,7 @@ try {
             if (-not $Parameter) { 
                 throw "Install requires the named parameter -Skin (Position = 1)"
             }
-            Install -FullName $Parameter -Cache $Cache -Force:$Force -FirstMatch
+            Install -FullName $Parameter -Force:$Force -FirstMatch
             break
         }
         "init" {
@@ -1462,7 +316,7 @@ try {
             if (-not $Parameter) { 
                 throw "Usage: mond init SkinName"
             }
-            Init -SkinName $Parameter
+            New-Skin -SkinName $Parameter
             break
         }
         "refresh" {
@@ -1471,7 +325,9 @@ try {
         }
         "list" {
             $Skins = @()
-            (ToIteratable -Object $Cache.Installed) | % { $Skins += Get-SkinObject -Cache $Cache -FullName $_.name }
+            (ToIteratable -Object $Cache.Installed) | ForEach-Object { 
+                $Skins += Get-SkinObject -FullName $_.name
+            }
             Format-SkinList -Skins $Skins
             break
         }
@@ -1488,7 +344,7 @@ try {
             if (-not $Parameter) { 
                 throw "Uninstall requires the named parameter -Skin (Position = 1)"
             }
-            Uninstall -FullName $Parameter -Cache $Cache -Force:$Force
+            Uninstall -FullName $Parameter -Force:$Force
             break
         }
         "restore" {
@@ -1496,41 +352,23 @@ try {
             if (-not $Parameter) { 
                 throw "Restore requires the named parameter -Skin (Position = 1)"
             }
-            Restore -FullName $Parameter -Cache $Cache -Force:$Force
+            Restore -FullName $Parameter -Force:$Force
             break
         }
         "lock" {
-            $RootConfig = Assert-SkinPath
-            New-Lock -SkinPath $Cache.SkinPath -RootConfig $RootConfig -RainmeterDirectory $Cache.RainmeterDirectory
+            $RootConfig = Assert-RootConfig
+            New-Lock -RootConfig $RootConfig
         }
         "package" {
             Limit-PowerShellVersion
-
-            $RootConfig = Assert-SkinPath
-
-            if ($OutDirectory -and !(Test-Path -Path "$($OutDirectory)")) {
-                throw "Invalid -OutputDirectory" 
-            }
-            if ($OutPath -and ($OutPath -notmatch "\\|\/")) { $OutPath = ".\$($OutPath)" }
-            if ($OutPath -and !(Test-Path -Path "$(Split-Path $OutPath)")) {
-                throw "Invalid -Output"
-            }
-
-            New-Skin -SkinPath $Cache.SkinPath -RootConfig "$RootConfig" -SettingsPath $Cache.SettingsPath -RainmeterDirectory $Cache.RainmeterDirectory
+            $RootConfig = Assert-RootConfig
+            New-Package -RootConfig "$RootConfig"
             break
         }
         "search" {
             if ($Query) { $Parameter = $Query }
             if ($Property) { $Option = $Property }
-
-            $found = Search -Query $Parameter -Property $Option -Cache $Cache
-
-            if (-not $found) { return Write-Host "No skins found." }
-
-            Write-Host "Found $($found.length) skins:" -ForegroundColor Green
-
-            Format-SkinList -Skins $found -Description
-
+            Search -Query $Parameter -Property $Option
             break
         }
         "config" {

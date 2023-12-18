@@ -18,12 +18,11 @@ Check the TO-DO below if you want to help!
 
 # TO-DO:
 
-- [ ] Refactor the script to only use `$Cache` inside the main script block and functions that mutate it. Other functions should always be invoked with their required information through parameters. Mandatory information should be marked with `Parameter(Mandatory)` and information should be derived from the least amount of parameters possible.
-  - The benefits of this, for example, functions like New-Skin and New-Lock can now be invoked when the script is sourced even without -RainmeterDirectory. Get-LatestPlugin can't check for built-in plugins without it but it will still work!  
+- [ ] Make `uninstall` and `restore` send bangs to Rainmeter
 - [ ] Make the API work with any git source. Git itself has tags which are the way the API tracks skin updates.
   - If a skin is from not-GitHub, `git clone` it and use `mond plugin` to install its plugins
   - This would also enable silent installs
-  - Make `mond install` git clone by default 
+  - Make `mond install` git clone by default
   - Make `mond install` accept a git uri and use git clone on it directly. Useful if the API is down or the skin not registered.
 - [ ] Work on `mond plugin [-Plugin] <plugin> [-Version <version>]` and the [plugin repository](https://github.com/meters-on-demand/plugins)
   - Should download and install the plugin from the plugin repository
