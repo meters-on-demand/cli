@@ -5,6 +5,7 @@ function New-Package {
         $RootConfig
     )
 
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
     $SettingsPath = $Cache.SettingsPath
     $RainmeterDirectory = $Cache.RainmeterDirectory
@@ -31,7 +32,7 @@ function New-Package {
     # $RMSKIN
 
     # Temp path
-    $temp = "$($SkinPath)\$($Self.TempDirectory)"
+    $temp = "$($SkinPath)\$($MetersOnDemand.TempDirectory)"
     Clear-Temp
 
     # Create RMSKIN.ini

@@ -5,6 +5,7 @@ function Get-SkinObject {
         [string]
         $FullName
     )
+    $Cache = $MetersOnDemand.Cache
     $Skin = $Cache.Skins.$FullName
     if (-not $Skin) { throw "No skin named $($FullName) found" }
     return $Skin
@@ -21,7 +22,7 @@ function Get-Request {
 }
 
 function RemovedDirectory {
-    $removedDirectory = "$($Cache.SkinPath)\$($Removed)"
+    $removedDirectory = "$($Cache.SkinPath)\$($MetersOnDemand.Removed)"
     if (-not(Test-Path -Path $removedDirectory)) {
         New-Item -Path $removedDirectory -ItemType Directory
     }
@@ -46,7 +47,6 @@ function Get-MondInc {
     )
     $SkinPath = $Cache.SkinPath
     $RootConfigPath = "$($SkinPath)\$($RootConfig)"
-
     if (Test-Path "$($RootConfigPath)\mond.inc") {
         return "$($RootConfigPath)\mond.inc"
     }
@@ -58,12 +58,11 @@ function Get-MondInc {
 
 function Clear-Temp {
     $SkinPath = $Cache.SkinPath
-    $temp = "$($SkinPath)\$($Self.TempDirectory)"
-
+    $temp = "$($SkinPath)\$($MetersOnDemand.TempDirectory)"
     if (!(Test-Path -Path "$temp")) {
-        New-Item -ItemType Directory -Path $temp
+        $__ = New-Item -ItemType Directory -Path $temp 
     }
-    Remove-Item -Path "$temp\*" -Recurse
+    $__ = Remove-Item -Path "$temp\*" -Recurse
 }
 
 function Get-SkinInfo {
@@ -270,7 +269,7 @@ function Download {
         Write-Host "Downloading $($Skin.full_name)"
     }
 
-    Invoke-WebRequest -Uri $Skin.latest_release.browser_download_url -OutFile $skinFile
+    Invoke-WebRequest -Uri $Skin.latest_release.browser_download_url -OutFile $MetersOnDemand.SkinFile
 
-    return $skinFile
+    return $MetersOnDemand.SkinFile
 }

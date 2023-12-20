@@ -1,23 +1,31 @@
 function New-Cache {
-    $Cache = [PSCustomObject]@{
+    return [PSCustomObject]@{
         Skins      = [pscustomobject]@{ };
         Installed  = [pscustomobject]@{ };
         Updateable = [pscustomobject]@{ };
     }
-    return $Cache
 }
 
 function Get-Cache {
-    if (!(Test-Path -Path $cacheFile)) {
-        throw "Cache doesn't exist"
+    $Cache = New-Cache
+    if (Test-Path -Path $MetersOnDemand.CacheFile) {
+        $Cache = Get-Content -Path $MetersOnDemand.CacheFile | ConvertFrom-Json
     }
-    $Cache = Get-Content -Path $cacheFile | ConvertFrom-Json
+
+    $CurrentDate = Get-Date -Format "MM-dd-yy"
+    if ($Cache.LastChecked -eq $CurrentDate) {
+        $Cache = Get-InstalledSkins -Cache $Cache
+    }
+
+    $Cache = Update-SkinList -Cache $Cache
+
     return $Cache
+
 }
 
-function Update-Cache {
+function Update-SkinList {
     param (
-        [Parameter(ValueFromPipeline)]
+        [Parameter(Mandatory)]
         [PSCustomObject]
         $Cache,
         [Parameter()]
@@ -25,27 +33,21 @@ function Update-Cache {
         $SkipInstalled,
         [Parameter()]
         [switch]
-        $Force
+        $Force,
+        [Parameter()]
+        [switch]
+        $Quiet
     )
-    if ($Cache -and !$Force) { return $Cache }
-
-    if (!$Cache) {
-        $Cache = Get-Cache
-    }
-    
-    $CurrentDate = Get-Date -Format "MM-dd-yy"
-    if (!$Force -and ($Cache.LastChecked -eq $CurrentDate)) {
-        if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
-        return $Cache
-    }
 
     $response = $false
     try {
-        $response = Get-Request $Api.Endpoints.Skins
+        $response = Get-Request $MetersOnDemand.Api.Endpoints.Skins
     }
     catch {
-        Write-Exception $_
-        Write-Exception "Couldn't reach API, using cache..."
+        if (!$Quiet) {
+            Write-Exception $_
+            Write-Exception "Couldn't reach API, using cache..."
+        }
     }
     if (!$response) {
         if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
@@ -66,8 +68,11 @@ function Update-Cache {
     if (-not $Cache.Updateable) { $Cache | Add-Member -MemberType NoteProperty -Name 'Updateable' -Value ([PSCustomObject] @{ }) -Force }
 
     $Cache = Get-InstalledSkins -Cache $Cache
+    $Cache = Save-Cache $Cache
 
-    return Save-Cache $Cache
+    if (!$Quiet) {   
+        return $Cache
+    }
 }
 
 function Get-InstalledSkins {
@@ -77,7 +82,9 @@ function Get-InstalledSkins {
         $Cache
     )
 
-    if (!$Cache) { $Cache = Update-Cache }
+    if (!$Cache) {
+        $Cache = $MetersOnDemand.Cache
+    }
 
     $Skins = $Cache.Skins
     $SkinPath = $Cache.SkinPath
@@ -121,8 +128,14 @@ function Save-Cache {
     param (
         [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
         [PSCustomObject]
-        $Cache
+        $Cache,
+        [Parameter()]
+        [switch]
+        $Quiet
     )
-    $Cache | ConvertTo-Json -Depth 4 | Out-File -FilePath $cacheFile
-    return $Cache
+    $MetersOnDemand.Cache = $Cache
+    $Cache | ConvertTo-Json -Depth 4 | Out-File -FilePath $MetersOnDemand.CacheFile
+    if (!$Quiet) {
+        return $Cache
+    }
 }

@@ -1,3 +1,3 @@
 function Version { 
-    Write-Host "MonD $($Self.Version)"
+    Write-Host "MonD $($MetersOnDemand.Version)"
 }

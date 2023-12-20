@@ -1,52 +1,57 @@
 function Test-DevCommand {
-    if ($Command -eq "dir") { 
-        Start-Process -FilePath "explorer.exe" -ArgumentList "$($Cache.SkinPath)\$($Self.Directory)"
-        return $True
-    }
-    if ($Command -eq "cache") {
-        (ToIteratable -Object $Cache) | ForEach-Object {
-            Write-Host $_
+    $Cache = $MetersOnDemand.Cache
+
+    switch ($Command) {
+        "dir" { 
+            Start-Process -FilePath "explorer.exe" -ArgumentList "$($Cache.SkinPath)\$($MetersOnDemand.Directory)"
+            return 
         }
-        return $True
+        "cache" {
+            $Cache
+            return
+        }
+        "open" {
+            $RootConfig = Assert-RootConfig
+            $p = "$($Cache.SkinPath)\$($RootConfig)"
+            if (Test-Path -Path $p) {
+                Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "`"$p`""
+                return
+            }
+        }
+        Default {}
     }
 
-    if ($Self.$Command) {
-        Write-Host $Self.$Command
-        return $True
+    if ($MetersOnDemand.$Command) {
+        Write-Output $MetersOnDemand.$Command
+        return
     }
     if ($Cache.$Command) {
-        Write-Host $Cache.$Command
-        return $True
+        Write-Output $Cache.$Command
+        return
     }
 
-    if ($Command -eq "open") {
-        $RootConfig = Assert-RootConfig
-        $p = "$($Cache.SkinPath)\$($RootConfig)"
-        if (Test-Path -Path $p) {
-            Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "`"$p`""
-            return $True
-        }
-    }
-
-    return $False
+    Write-Host "$Command" -ForegroundColor Red -NoNewline
+    Write-Host " is not a command! Use" -NoNewline 
+    Write-Host " MonD help " -ForegroundColor Blue -NoNewline
+    Write-Host "to see available commands!"
 
 }
 
 function Config {
-    Write-Host ""
-    $Self | ToIteratable | ForEach-Object { Write-Host "$($_.Name)`t $($_.Value)" }
+
+    $Cache = $MetersOnDemand.Cache
+    $MetersOnDemand.Cache = "@{ ... }"
+    $MetersOnDemand
 
     Write-Host ""
     Write-Host "Cache updated`t $($Cache.LastChecked)"
     Write-Host "Skins in cache`t $(($Cache.Skins | ToIteratable | Measure-Object).Count)"
-    
-    Write-Host ""
-    Write-Host "SkinPath`t $($Cache.SkinPath)" 
-    Write-Host "SettingsPath`t $($Cache.SettingsPath)" 
-    Write-Host "ProgramPath`t $($Cache.ProgramPath)" 
-    Write-Host "ConfigEditor`t $($Cache.ConfigEditor)" 
 
-    return ""
+    Write-Host ""
+    $Cache.Skins = "@{ ... }"
+    $Cache.Installed = "@{ ... }"
+    $Cache
+
 }
 
 function New-Skin {
@@ -57,6 +62,7 @@ function New-Skin {
         $SkinName
     )
 
+    $Cache = $MetersOnDemand.Cache
     $ConfigPath = "$($Cache.SkinPath)\$($SkinName)"
     $ResourcesPath = "$($ConfigPath)\@Resources"
 
@@ -64,8 +70,8 @@ function New-Skin {
         throw "Skin already exists."
     }
 
-    New-Item -ItemType Directory -Path $ConfigPath
-    New-Item -ItemType Directory -Path $ResourcesPath
+    $o = New-Item -ItemType Directory -Path $ConfigPath
+    $o = New-Item -ItemType Directory -Path $ResourcesPath
 
     # Create Mond.inc
     @"
@@ -109,14 +115,15 @@ Meter=Image
 
 "@ | Out-File -FilePath "$($ConfigPath)\$($SkinName).ini"
 
+    Write-Host "Created $($SkinName)" -NoNewline
     # Open the created skin in the default config editor 
     Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "$ConfigPath"
 
 }
 
 function Refresh {
-    $Cache = Update-Cache
-    Start-Process -FilePath "$($Cache.ProgramPath)" -ArgumentList "[!ActivateConfig `"$($Installer.SkinName)`"]"
+    $Cache = $MetersOnDemand.Cache
+    Start-Process -FilePath "$($Cache.ProgramPath)" -ArgumentList "[!ActivateConfig `"$($MetersOnDemand.Installer.SkinName)`"]"
 }
 
 function New-Lock {
@@ -126,6 +133,7 @@ function New-Lock {
         $RootConfig
     )
 
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
     $RainmeterDirectory = $Cache.RainmeterDirectory
 
@@ -151,14 +159,14 @@ function Assert-RootConfig {
         $Skin = $Parameter
     }
 
-    $Cache = Update-Cache
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
 
     $workingParent = Split-Path -Path $pwd
     if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Skin)) {
         throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Skin parameter!"
     }
-    
+
     $workingName = Split-Path -Path $pwd -Leaf
     $RootConfig = $workingName
     if ($Skin) { $RootConfig = $Skin }

@@ -5,7 +5,7 @@ function Test-BuiltIn {
         $Plugin
     )
 
-    $Cache = Update-Cache
+    $Cache = $MetersOnDemand.Cache
     $RainmeterDirectory = $Cache.RainmeterDirectory
 
     $builtInPlugins = Get-ChildItem -Path "$($RainmeterDirectory)\Plugins\*"
@@ -28,7 +28,7 @@ function Get-LatestPlugin {
         $Plugin
     )
 
-    $Cache = Update-Cache
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
     $RainmeterDirectory = $Cache.RainmeterDirectory
 

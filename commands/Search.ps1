@@ -11,7 +11,7 @@ function Search {
         $Quiet
     )
 
-    $Skins = $Cache.Skins
+    $Skins = $MetersOnDemand.Cache.Skins
 
     if (!$Query) { $Query = ".*" }
     if (!$Property) { $Property = "full_name" }

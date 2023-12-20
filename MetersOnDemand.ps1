@@ -81,37 +81,34 @@ param (
 )
 
 # Globals
-$Self = [PSCustomObject]@{ 
-    Version       = "v1.3.0"
-    Directory     = "#Mond"
-    FileName      = "MetersOnDemand.ps1"
-    BatFileName   = "mond.bat"
-    TempDirectory = "#Mond\temp"
-    Repository    = "meters-on-demand/cli"
-    Wiki          = "https://docs.rainmeter.skin"
-    Modules       = "modules"
-    Commands      = "commands"
-    CacheFile     = "cache.json"
-}
-
-$Installer = [PSCustomObject]@{
-    SkinName = "Meters on Demand"
-}
-
-$Api = [PSCustomObject]@{
-    Url       = "https://api.rainmeter.skin"
-    Endpoints = [PSCustomObject]@{
-        Skins = "https://api.rainmeter.skin/skins"
+$MetersOnDemand = [PSCustomObject]@{ 
+    Version        = "v1.3.0"
+    Directory      = "#Mond"
+    FileName       = "MetersOnDemand.ps1"
+    BatFileName    = "mond.bat"
+    TempDirectory  = "#Mond\temp"
+    FullName       = "meters-on-demand/cli"
+    Wiki           = "https://docs.rainmeter.skin"
+    Modules        = "modules"
+    Commands       = "commands"
+    Removed        = "@Backup"
+    Installer      = [PSCustomObject]@{
+        SkinName = "Meters on Demand"
     }
-    Wiki      = "https://docs.rainmeter.skin/api"
+    Api            = [PSCustomObject]@{
+        Url       = "https://api.rainmeter.skin"
+        Endpoints = [PSCustomObject]@{
+            Skins = "https://api.rainmeter.skin/skins"
+        }
+        Wiki      = "https://docs.rainmeter.skin/api"
+    }
+    Cache          = $False 
+    ScriptRoot     = ""
+    PreInstallRoot = ""
+    CacheFile      = ""
+    LogFile        = ""
+    SkinFile       = ""
 }
-
-$Commands = [PSCustomObject]@{
-    Name = "Value"
-}
-
-$Cache = $false
-$Removed = "@Backup"
 
 # If running under PSRM in Rainmeter
 if ($RmApi) {
@@ -121,38 +118,38 @@ if ($RmApi) {
     $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))"
     $ProgramPath = "$($RainmeterDirectory)Rainmeter.exe"
     $IsInstaller = $RmApi.Variable("MetersOnDemand.Install") -eq 1
-    # The installed ScriptRoot
-    $ScriptRoot = "$SkinPath$($Self.Directory)"
-    # For copying the script files from the right place
-    $RootConfigPath = "$($RmApi.VariableStr("ROOTCONFIGPATH"))" -replace "\\$"
+    # Post install location
+    $MetersOnDemand.ScriptRoot = "$SkinPath$($MetersOnDemand.Directory)"
+    # Pre install location
+    $MetersOnDemand.PreInstallRoot = "$($RmApi.VariableStr("ROOTCONFIGPATH"))" -replace "\\$"
 }
 else { 
     if (!$PSScriptRoot) {
-        throw "`$PSScriptRoot is not set??? Where am I?? Where is `$SkinPath\$($Self.Directory)???" 
+        throw "`$PSScriptRoot is not set??? Where am I?? Where is `$SkinPath\$($MetersOnDemand.Directory)???" 
     }
-    $ScriptRoot = $PSScriptRoot
-    $RootConfigPath = $PSScriptRoot
+    $MetersOnDemand.ScriptRoot = $PSScriptRoot
+    $MetersOnDemand.PreInstallRoot = $PSScriptRoot
 }
 
 # Files
-$cacheFile = "$($ScriptRoot)\$($Self.CacheFile)"
-$logFile = "$($ScriptRoot)\mond.log"
-$skinFile = "$($ScriptRoot)\skin.rmskin"
+$MetersOnDemand.CacheFile = "$($MetersOnDemand.ScriptRoot)\cache.json"
+$MetersOnDemand.LogFile = "$($MetersOnDemand.ScriptRoot)\mond.log"
+$MetersOnDemand.SkinFile = "$($MetersOnDemand.ScriptRoot)\skin.rmskin"
 
 # Load modules
-Get-ChildItem "$($RootConfigPath)\$($Self.Modules)\*" | % {
+Get-ChildItem "$($MetersOnDemand.PreInstallRoot)\$($MetersOnDemand.Modules)\*" | ForEach-Object {
     . "$($_)"
 }
 
 # Load commands
-Get-ChildItem "$($RootConfigPath)\$($Self.Commands)\*" | % {
+Get-ChildItem "$($MetersOnDemand.PreInstallRoot)\$($MetersOnDemand.Commands)\*" | ForEach-Object {
     . "$($_)"
 }
 
 function Update {
     if (!$RmApi) {
         Write-Host "Use " -NoNewline
-        Write-Host "Update-Cache" -NoNewline -ForegroundColor White
+        Write-Host "Update-SkinList" -NoNewline -ForegroundColor White
         Write-Host " to update the cache file."
         return
     }
@@ -161,8 +158,8 @@ function Update {
     $RmApi.Bang("[!PauseMeasure `"$($parentMeasure)`"][!SetOption `"$($parentMeasure)`" UpdateDivider -1]")
 
     Write-Host "Updating MonD cache!"
-    Update-Cache
-    return $Self.Version
+    $MetersOnDemand.Cache = Get-Cache
+    return $MetersOnDemand.Version
 }
 
 function InstallMetersOnDemand {
@@ -205,7 +202,7 @@ function InstallMetersOnDemand {
         $RootConfigPath = "$RootConfigPath" -replace "\\$", ""
         $RainmeterDirectory = "$RainmeterDirectory" -replace "\\$", ""
 
-        $InstallPath = "$SkinPath\$($Self.Directory)"
+        $InstallPath = "$SkinPath\$($MetersOnDemand.Directory)"
         if (Test-Path -Path $InstallPath) {
             Remove-Item -Path $InstallPath -Recurse
             New-Item -Path $InstallPath -ItemType Directory
@@ -216,8 +213,8 @@ function InstallMetersOnDemand {
 
         # Write debug info
         Write-Host "/////////////////"
-        Write-Host "Self $($Self)"
-        Write-Host "ScriptRoot: $($ScriptRoot)"
+        Write-Host "Self $($MetersOnDemand)"
+        Write-Host "ScriptRoot: $($MetersOnDemand.ScriptRoot)"
         Write-Host "RootConfigPath: $($RootConfigPath)"
         Write-Host "SkinPath: $($SkinPath)"
         Write-Host "SettingsPath: $($SettingsPath)"
@@ -233,25 +230,25 @@ function InstallMetersOnDemand {
         $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "RainmeterDirectory" -Value "$RainmeterDirectory" -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "ConfigEditor" -Value "$ConfigEditor" -Force
-        $Cache = Update-Cache -Cache $Cache -Force
-        $Cache = Save-Cache -Cache $Cache
+        $Cache = Update-SkinList -Cache $Cache -Force
+        Save-Cache -Cache $Cache
 
         Write-Host "Copying script files to '$InstallPath'"
-        Write-Host "Copying $($Self.FileName)"
-        Copy-Item -Path "$($RootConfigPath)\$($Self.FileName)" -Destination $InstallPath -Force
-        Write-Host "Copying $($Self.BatFileName)"
-        Copy-Item -Path "$($RootConfigPath)\$($Self.BatFileName)" -Destination $InstallPath -Force
-        Write-Host "Copying $($Self.Modules)"
-        Copy-Item -Path "$($RootConfigPath)\$($Self.Modules)" -Recurse -Destination $InstallPath -Force
-        Write-Host "Copying $($Self.Commands)"
-        Copy-Item -Path "$($RootConfigPath)\$($Self.Commands)" -Recurse -Destination $InstallPath -Force
-        Write-Host "Copying $($Self.CacheFile)"
-        Copy-Item -Path "$($cacheFile)" -Destination $InstallPath -Force
+        Write-Host "Copying $($MetersOnDemand.FileName)"
+        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.FileName)" -Destination $InstallPath -Force
+        Write-Host "Copying $($MetersOnDemand.BatFileName)"
+        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.BatFileName)" -Destination $InstallPath -Force
+        Write-Host "Copying $($MetersOnDemand.Modules)"
+        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Modules)" -Recurse -Destination $InstallPath -Force
+        Write-Host "Copying $($MetersOnDemand.Commands)"
+        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Commands)" -Recurse -Destination $InstallPath -Force
+        Write-Host "Copying $($MetersOnDemand.CacheFile)"
+        Copy-Item -Path "$($MetersOnDemand.CacheFile)" -Destination $InstallPath -Force
 
         Write-Host "Adding '$InstallPath' to PATH"
         Set-PathVariable -AddPath $InstallPath
 
-        Write-Host "Successfully installed MonD $($Self.Version)!"
+        Write-Host "Successfully installed MonD $($MetersOnDemand.Version)!"
 
         if ($RmApi) {
             $RmApi.Bang('[!About][!DeactivateConfig]')
@@ -270,11 +267,11 @@ if ($RmApi) {
         }
         catch {
             $RmApi.LogError("$($_)")
-            $_ | Out-File -FilePath $logFile -Append
-            $RmApi.Bang("[`"$($logFile)`"]")
+            $_ | Out-File -FilePath $MetersOnDemand.LogFile -Append
+            $RmApi.Bang("[`"$($MetersOnDemand.LogFile)`"]")
         }
     }
-    return 
+    return
 }
 try {
     # Commands that do not need the cache
@@ -283,12 +280,12 @@ try {
 
     # Create the cache
     if ($Command -eq "update") { $Force = $True }
-    $Cache = Update-Cache -Force:$Force
+    $MetersOnDemand.Cache = Get-Cache
 
     # Mond alias
     if (@("install", "upgrade", "search").Contains($Command)) {
-        if ($Skin -like "mond") { $Skin = $Self.Repository }
-        if ($Parameter -like "mond") { $Parameter = $Self.Repository }
+        if ($Skin -like "mond") { $Skin = $MetersOnDemand.FullName }
+        if ($Parameter -like "mond") { $Parameter = $MetersOnDemand.FullName }
     }
 
     switch ($Command) {
@@ -300,6 +297,7 @@ try {
                 Write-Host "' to upgrade a skin."
                 return
             }
+            Update-SkinList -Cache $MetersOnDemand.Cache -Quiet
             Write-Host "Cache updated!"
             break
         }
@@ -311,21 +309,9 @@ try {
             Install -FullName $Parameter -Force:$Force -FirstMatch
             break
         }
-        "init" {
-            if ($Skin) { $Parameter = $Skin }
-            if (-not $Parameter) { 
-                throw "Usage: mond init SkinName"
-            }
-            New-Skin -SkinName $Parameter
-            break
-        }
-        "refresh" {
-            Refresh
-            break
-        }
         "list" {
             $Skins = @()
-            (ToIteratable -Object $Cache.Installed) | ForEach-Object { 
+            (ToIteratable -Object $MetersOnDemand.Cache.Installed) | ForEach-Object { 
                 $Skins += Get-SkinObject -FullName $_.name
             }
             Format-SkinList -Skins $Skins
@@ -355,6 +341,18 @@ try {
             Restore -FullName $Parameter -Force:$Force
             break
         }
+        "init" {
+            if ($Skin) { $Parameter = $Skin }
+            if (-not $Parameter) { 
+                throw "Usage: mond init SkinName"
+            }
+            New-Skin -SkinName $Parameter
+            break
+        }
+        "refresh" {
+            Refresh
+            break
+        }
         "lock" {
             $RootConfig = Assert-RootConfig
             New-Lock -RootConfig $RootConfig
@@ -376,17 +374,13 @@ try {
             break
         }
         Default {
-            if (Test-DevCommand) { return }
-            Write-Host "$Command" -ForegroundColor Red -NoNewline
-            Write-Host " is not a command! Use" -NoNewline 
-            Write-Host " MonD help " -ForegroundColor Blue -NoNewline
-            Write-Host "to see available commands!"
+            Test-DevCommand
             break
         }
     }
 }
 catch {
-    $_ | Out-File -FilePath $logFile -Append 
+    $_ | Out-File -FilePath $MetersOnDemand.LogFile -Append 
     # Write-Host $_
     Write-Error $_
     Write-Host $_.ScriptStackTrace

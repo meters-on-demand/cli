@@ -44,20 +44,8 @@ function Help {
         [pscustomobject]@{
             Name        = "restore"
             Signature   = "$skinSig $forceSig"
-            Description = "restores an upgraded or uninstalled skin from $($Removed)"
+            Description = "restores an upgraded or uninstalled skin from $($MetersOnDemand.Removed)"
         },
-        [pscustomobject]@{
-            Name        = "init"
-            Signature   = "[-Skin] <skin_name>"
-            Description = "creates a new skin folder from a template"
-            Wiki        = $initWiki
-        },
-        [pscustomobject]@{
-            Name        = "package"
-            Signature   = "[[-Skin] <rootconfig>] [...]"
-            Description = "creates a .rmskin package of the specified skin"
-            Wiki        = $packageWiki
-        }, 
         [pscustomobject]@{
             Name        = "version"
             Signature   = ""
@@ -72,6 +60,18 @@ function Help {
 
     $devCommands = @(
         [pscustomobject]@{
+            Name        = "package"
+            Signature   = "[[-Skin] <rootconfig>] [...]"
+            Description = "creates a .rmskin package of the specified skin"
+            Wiki        = $packageWiki
+        }, 
+        [pscustomobject]@{
+            Name        = "init"
+            Signature   = "[-Skin] <skin_name>"
+            Description = "creates a new skin folder from a template"
+            Wiki        = $initWiki
+        },
+        [pscustomobject]@{
             Name        = "open"
             Signature   = "$($skinSig)"
             Description = "Opens the specified skins #ROOTCONFIG# in your #CONFIGEDITOR#"
@@ -84,17 +84,17 @@ function Help {
         [pscustomobject]@{
             Name        = "config"
             Signature   = ""
-            Description = "Prints debug information of the main $($Self.FileName) script"
+            Description = "Prints debug information of the main $($MetersOnDemand.FileName) script"
         },
         [pscustomobject]@{
             Name        = ""
             Signature   = "<property>"
-            Description = "Prints the specified property if it's present in MetersOnDemand.ps1 `$Self or the mond cache.json"
+            Description = "Prints the specified property if it's present in MetersOnDemand.ps1 `$MetersOnDemand or the mond cache.json"
         },
         [pscustomobject]@{
             Name        = "dir"
             Signature   = ""
-            Description = "Opens #SKINSPATH#\$($Self.Directory)"
+            Description = "Opens #SKINSPATH#\$($MetersOnDemand.Directory)"
         },
         [pscustomobject]@{
             Name        = "refresh"
@@ -105,7 +105,7 @@ function Help {
 
     if ($Parameter -eq "dev") {
         Write-Host "MonD" -ForegroundColor White -NoNewline
-        Write-Host " $($Self.Version) " -ForegroundColor Blue -NoNewline
+        Write-Host " $($MetersOnDemand.Version) " -ForegroundColor Blue -NoNewline
         Write-Host "developer commands`n" -ForegroundColor White
     
         foreach ($command in $devCommands) {
@@ -119,7 +119,7 @@ function Help {
 
     if ($Parameter) {
         $command = $commands | Where-Object { $_.Name -eq $Parameter }
-        if (!$command) { $command = $devCommands | Where-Object {$_.Name -eq $Parameter} }
+        if (!$command) { $command = $devCommands | Where-Object { $_.Name -eq $Parameter } }
         if (!$command) { 
             throw "$($Parameter) is not a command. Use 'mond help' to see all available commands."
         }
@@ -144,7 +144,7 @@ function Help {
     }
     
     Write-Host "Check out the Meters on Demand wiki! " -NoNewline
-    Write-Host $Self.Wiki -ForegroundColor Blue
+    Write-Host $MetersOnDemand.Wiki -ForegroundColor Blue
 
     return 
 }

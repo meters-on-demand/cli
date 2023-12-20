@@ -11,6 +11,7 @@ function Uninstall {
         $Quiet
     )
 
+    $Cache = $MetersOnDemand.Cache
     $installed = $Cache.Installed.$FullName
     if (-not $installed) { 
         if ($Force) { return }
@@ -31,7 +32,7 @@ function Uninstall {
     # Update cache
     $Cache.Installed.psobject.properties.Remove($FullName)
     $Cache.Updateable.psobject.properties.Remove($FullName)
-    $Cache = Save-Cache $Cache
+    Save-Cache $Cache -Quiet
 
     # Report results
     if (!$Quiet) {

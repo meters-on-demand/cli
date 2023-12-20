@@ -18,6 +18,7 @@ Check the TO-DO below if you want to help!
 
 # TO-DO:
 
+- [ ] Put $Cache inside $MetersOnDemand, initialize cache with New-Cache stuff already there
 - [ ] Make `uninstall` and `restore` send bangs to Rainmeter
 - [ ] Make the API work with any git source. Git itself has tags which are the way the API tracks skin updates.
   - If a skin is from not-GitHub, `git clone` it and use `mond plugin` to install its plugins

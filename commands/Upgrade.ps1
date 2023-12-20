@@ -8,6 +8,7 @@ function Upgrade {
         $Force
     )
 
+    $Cache = $MetersOnDemand.Cache
     $Skin = Get-SkinObject $FullName
     $installed = $Cache.Installed.($Skin.full_name)
 

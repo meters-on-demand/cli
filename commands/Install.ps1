@@ -11,6 +11,8 @@ function Install {
         $FirstMatch
     )
 
+    $Cache = $MetersOnDemand.Cache
+
     try {
         $Skin = Get-SkinObject -FullName $FullName
     }
@@ -38,10 +40,10 @@ function Install {
         $Installed | Add-Member -MemberType NoteProperty -Name "$FullName" -Value $latest -Force
         $Cache | Add-Member -MemberType NoteProperty -Name "Installed" -Value $Installed -Force
         $Cache.Updateable.psobject.properties.Remove($FullName)
-        $Cache = Save-Cache $Cache
+        Save-Cache $Cache -Quiet
     }
 
     Download -FullName $FullName
-    Start-Process -FilePath $skinFile
+    Start-Process -FilePath $MetersOnDemand.SkinFile
 
 }
