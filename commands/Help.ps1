@@ -1,9 +1,6 @@
 function Help {
 
-    $PowerShellVersion = $PSVersionTable.PSVersion
-    if ($PowerShellVersion.Major -lt 5) {
-        Write-Host "You are running PowerShell $($PowerShellVersion) which is outdated. PowerShell 5 or 7 is recommended.`n" -ForegroundColor Yellow
-    }
+    Limit-PowerShellVersion
 
     $skinSig = "[-Skin] <full_name>"
     $forceSig = "[-Force]"
@@ -53,8 +50,8 @@ function Help {
         },
         [pscustomobject]@{
             Name        = "help"
-            Signature   = "[-Command]"
-            Description = "show this help"
+            Signature   = "[-Command] [dev]"
+            Description = "show this help. use 'mond help dev' for a list of dev commands"
         }
     )
 
@@ -104,14 +101,13 @@ function Help {
     )
 
     if ($Parameter -eq "dev") {
-        Write-Host "MonD" -ForegroundColor White -NoNewline
-        Write-Host " $($MetersOnDemand.Version) " -ForegroundColor Blue -NoNewline
-        Write-Host "developer commands`n" -ForegroundColor White
-    
         foreach ($command in $devCommands) {
             Write-Host "$($command.name) " -ForegroundColor White -NoNewline
             Write-Host "$($command.signature) " -ForegroundColor Cyan
             Write-Host " $($command.Description)" -ForegroundColor Gray -NoNewline
+            if ($command.Wiki) {
+                Write-Host "`n $($command.Wiki)" -ForegroundColor Blue -NoNewline
+            }
             Write-Host "`n"
         }
         return

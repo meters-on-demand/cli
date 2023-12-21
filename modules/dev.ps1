@@ -7,8 +7,7 @@ function Test-DevCommand {
             return 
         }
         "cache" {
-            $Cache
-            return
+            return $Cache
         }
         "open" {
             $RootConfig = Assert-RootConfig
@@ -22,12 +21,10 @@ function Test-DevCommand {
     }
 
     if ($MetersOnDemand.$Command) {
-        Write-Output $MetersOnDemand.$Command
-        return
+        return $MetersOnDemand.$Command
     }
     if ($Cache.$Command) {
-        Write-Output $Cache.$Command
-        return
+        return $Cache.$Command
     }
 
     Write-Host "$Command" -ForegroundColor Red -NoNewline
@@ -40,17 +37,18 @@ function Test-DevCommand {
 function Config {
 
     $Cache = $MetersOnDemand.Cache
-    $MetersOnDemand.Cache = "@{ ... }"
-    $MetersOnDemand
 
-    Write-Host ""
-    Write-Host "Cache updated`t $($Cache.LastChecked)"
-    Write-Host "Skins in cache`t $(($Cache.Skins | ToIteratable | Measure-Object).Count)"
+    $skinsCount = ($Cache.Skins | ToIteratable | Measure-Object).Count
+    $installedCount = ($Cache.Installed | ToIteratable | Measure-Object).Count
 
-    Write-Host ""
-    $Cache.Skins = "@{ ... }"
-    $Cache.Installed = "@{ ... }"
+    $Cache.Skins = "@{ `"meters-on-demand/cli`": @{ ... }, $($skinsCount - 1) more items... }"
+    $Cache.Installed = "@{ `"meters-on-demand/cli`": `"$($MetersOnDemand.Version)`", $($installedCount - 1) more items... }"
+    Write-Host "`n`$MetersOnDemand.Cache" -ForegroundColor Green
     $Cache
+
+    $MetersOnDemand.Cache = "@{ ... } (see above)"
+    Write-Host "`n`$MetersOnDemand" -ForegroundColor Green
+    $MetersOnDemand
 
 }
 
