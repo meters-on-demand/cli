@@ -77,7 +77,10 @@ param (
     $MergeSkins,
     [Parameter()]
     [switch]
-    $Force
+    $Force,
+    [Parameter()]
+    [switch]
+    $Quiet
 )
 
 # Globals
@@ -268,13 +271,17 @@ if ($RmApi) {
     return
 }
 try {
+    $isDotSourced = $MyInvocation.InvocationName -eq '.' -or $MyInvocation.Line -eq ''
+
     # Commands that do not need the cache
+    if (($Command -eq "help") -and !$isDotSourced) { return Help }
     if ($Command -eq "version") { return Version }
-    if ($Command -eq "help") { return Help }
 
     # Create the cache
     if ($Command -eq "update") { $Force = $True }
     $MetersOnDemand.Cache = Get-Cache
+
+    if ($isDotSourced) { return }
 
     # Mond alias
     if (@("install", "upgrade", "search").Contains($Command)) {
