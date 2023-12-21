@@ -271,7 +271,7 @@ if ($RmApi) {
     return
 }
 try {
-    $isDotSourced = $MyInvocation.InvocationName -eq '.' -or $MyInvocation.Line -eq ''
+    $isDotSourced = $MyInvocation.InvocationName -eq '.'
 
     # Commands that do not need the cache
     if (($Command -eq "help") -and !$isDotSourced) { return Help }

@@ -118,6 +118,10 @@ function Help {
     }
 
     if ($Parameter) {
+        if ($Parameter -eq "api") { 
+            Start-Process "$($MetersOnDemand.Api.Wiki)"
+            return
+        }
         $command = $commands | Where-Object { $_.Name -eq $Parameter }
         if (!$command) { $command = $devCommands | Where-Object { $_.Name -eq $Parameter } }
         if (!$command) { 

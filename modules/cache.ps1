@@ -12,13 +12,15 @@ function Get-Cache {
         $Cache = Get-Content -Path $MetersOnDemand.CacheFile | ConvertFrom-Json
     }
 
+    $Cache = Get-InstalledSkins -Cache $Cache
+
     $CurrentDate = Get-Date -Format "MM-dd-yy"
-    if ($Cache.LastChecked -eq $CurrentDate) {
-        $Cache = Get-InstalledSkins -Cache $Cache
+    if ($Cache.LastChecked -ne $CurrentDate) {
+        $Cache = Update-SkinList -Cache $Cache
+        return $Cache
     }
 
-    $Cache = Update-SkinList -Cache $Cache
-
+    Save-Cache -Cache $Cache -Quiet
     return $Cache
 
 }
@@ -36,7 +38,10 @@ function Update-SkinList {
         $Force,
         [Parameter()]
         [switch]
-        $Quiet
+        $Quiet,
+        [Parameter()]
+        [switch]
+        $SkipSave
     )
 
     $response = $false
@@ -50,7 +55,12 @@ function Update-SkinList {
         }
     }
     if (!$response) {
-        if (!$SkipInstalled) { $Cache = Get-InstalledSkins -Cache $Cache }
+        if (!$SkipInstalled) { 
+            $Cache = Get-InstalledSkins -Cache $Cache
+            if (!$SkipSave) {
+                Save-Cache -Cache $Cache -Quiet
+            }
+        }
         return $Cache
     }
 
@@ -68,9 +78,10 @@ function Update-SkinList {
     if (-not $Cache.Updateable) { $Cache | Add-Member -MemberType NoteProperty -Name 'Updateable' -Value ([PSCustomObject] @{ }) -Force }
 
     $Cache = Get-InstalledSkins -Cache $Cache
-    $Cache = Save-Cache $Cache
-
-    if (!$Quiet) {   
+    if (!$SkipSave) {
+        Save-Cache -Cache $Cache -Quiet
+    }
+    if (!$Quiet) {
         return $Cache
     }
 }
