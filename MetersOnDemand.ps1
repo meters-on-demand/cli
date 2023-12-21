@@ -112,14 +112,8 @@ $MetersOnDemand = [PSCustomObject]@{
 
 # If running under PSRM in Rainmeter
 if ($RmApi) {
-    $SkinPath = "$($RmApi.VariableStr("SKINSPATH"))"
-    $SettingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))"
-    $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))"
-    $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))"
-    $ProgramPath = "$($RainmeterDirectory)Rainmeter.exe"
-    $IsInstaller = $RmApi.Variable("MetersOnDemand.Install") -eq 1
     # Post install location
-    $MetersOnDemand.ScriptRoot = "$SkinPath$($MetersOnDemand.Directory)"
+    $MetersOnDemand.ScriptRoot = ("$($RmApi.VariableStr("SKINSPATH"))" -replace "\\$", "") + "\$($MetersOnDemand.Directory)"
     # Pre install location
     $MetersOnDemand.PreInstallRoot = "$($RmApi.VariableStr("ROOTCONFIGPATH"))" -replace "\\$"
 }
@@ -193,15 +187,16 @@ function InstallMetersOnDemand {
             }
             $RainmeterDirectory = Split-Path -Path $ProgramPath -Parent
         }
+        else {
+            $SkinPath = "$($RmApi.VariableStr("SKINSPATH"))" -replace "\\$", ""
+            $SettingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))" -replace "\\$", ""
+            $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))" -replace "\\$", ""
+            $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))" -replace "\\$", ""
+            $ProgramPath = "$($RainmeterDirectory)\Rainmeter.exe"
+        }
 
         Write-Host "Installing Meters on Demand..."
-
-        # Remove trailing \ from Rainmeter paths
-        $SkinPath = "$SkinPath" -replace "\\$", ""
-        $SettingsPath = "$SettingsPath" -replace "\\$", ""
-        $RootConfigPath = "$RootConfigPath" -replace "\\$", ""
-        $RainmeterDirectory = "$RainmeterDirectory" -replace "\\$", ""
-
+        $RootConfigPath = $MetersOnDemand.PreInstallRoot
         $InstallPath = "$SkinPath\$($MetersOnDemand.Directory)"
         if (Test-Path -Path $InstallPath) {
             Remove-Item -Path $InstallPath -Recurse
@@ -213,7 +208,6 @@ function InstallMetersOnDemand {
 
         # Write debug info
         Write-Host "/////////////////"
-        Write-Host "Self $($MetersOnDemand)"
         Write-Host "ScriptRoot: $($MetersOnDemand.ScriptRoot)"
         Write-Host "RootConfigPath: $($RootConfigPath)"
         Write-Host "SkinPath: $($SkinPath)"
@@ -261,7 +255,7 @@ function InstallMetersOnDemand {
 
 # Main body
 if ($RmApi) { 
-    if ($IsInstaller) {
+    if ($RmApi.Variable("MetersOnDemand.Install") -eq 1) {
         try {
             InstallMetersOnDemand
         }
