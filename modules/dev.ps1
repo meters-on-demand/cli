@@ -115,7 +115,7 @@ Meter=Image
 
     Write-Host "Created $($SkinName)" -NoNewline
     # Open the created skin in the default config editor 
-    Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "$ConfigPath"
+    Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "`"$ConfigPath`""
 
 }
 
