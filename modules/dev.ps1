@@ -11,11 +11,7 @@ function Test-DevCommand {
         }
         "open" {
             $RootConfig = Assert-RootConfig
-            $p = "$($Cache.SkinPath)\$($RootConfig)"
-            if (Test-Path -Path $p) {
-                Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "`"$p`""
-                return
-            }
+            return Open-Skin $RootConfig
         }
         Default {}
     }
@@ -114,8 +110,31 @@ Meter=Image
 "@ | Out-File -FilePath "$($ConfigPath)\$($SkinName).ini"
 
     Write-Host "Created $($SkinName)" -NoNewline
-    # Open the created skin in the default config editor 
-    Start-Process -FilePath "$($Cache.ConfigEditor)" -ArgumentList "`"$ConfigPath`""
+
+    Open-Skin -SkinName $SkinName
+
+}
+
+function Open-Skin {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, Position = 0)]
+        [string]
+        $SkinName
+    )
+
+    $ConfigPath = "$($Cache.SkinPath)\$($SkinName)"
+    
+    if (!(Test-Path -Path $ConfigPath)) {
+        throw "Specified skin does not exist"
+    }
+    
+    $ConfigEditor = $Cache.ConfigEditor
+    if($ConfigEditor -like "*notepad.exe") {
+        $ConfigEditor = "explorer.exe"
+    }
+
+    Start-Process -FilePath "$($ConfigEditor)" -ArgumentList "`"$ConfigPath`""
 
 }
 
