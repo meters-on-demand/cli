@@ -56,7 +56,7 @@ function Add-Installed {
 
 function Get-Cache {
     if (Test-Path -Path $MetersOnDemand.CacheFile) {
-        return Get-Content -Path $MetersOnDemand.CacheFile | ConvertFrom-Json
+        return Read-Json -Path $MetersOnDemand.CacheFile
     }
     else {
         throw "Cache file does not exist."
@@ -194,8 +194,5 @@ function Save-Cache {
         $Quiet
     )
     $MetersOnDemand.Cache = $Cache
-    $Cache | ConvertTo-Json -Depth 4 | Out-File -FilePath $MetersOnDemand.CacheFile
-    if (!$Quiet) {
-        return $Cache
-    }
+    $Cache | Out-Json -Path $MetersOnDemand.CacheFile -Quiet:$Quiet
 }

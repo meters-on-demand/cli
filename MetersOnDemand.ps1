@@ -206,11 +206,7 @@ function InstallMetersOnDemand {
         Write-Host "Installing Meters on Demand..."
         $RootConfigPath = $MetersOnDemand.PreInstallRoot
         $InstallPath = "$SkinPath\$($MetersOnDemand.Directory)"
-        if (Test-Path -Path $InstallPath) {
-            Remove-Item -Path $InstallPath -Recurse
-            New-Item -Path $InstallPath -ItemType Directory
-        }
-        else {
+        if (!(Test-Path -Path $InstallPath)) {
             New-Item -ItemType Directory -Path $InstallPath 
         }
 
@@ -234,19 +230,21 @@ function InstallMetersOnDemand {
                 ConfigEditor       = $ConfigEditor
             }) | Add-SkinLists | Save-Cache -Quiet
 
-        Write-Host "Copying from $RootConfigPath"
-
-        Write-Host "Copying script files to '$InstallPath'"
-        Write-Host "Copying $($MetersOnDemand.FileName)"
+        Write-Host "Copying script files from '$RootConfigPath' to '$InstallPath'"
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.FileName)" -Destination $InstallPath -Force
-        Write-Host "Copying $($MetersOnDemand.BatFileName)"
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.BatFileName)" -Destination $InstallPath -Force
-        Write-Host "Copying $($MetersOnDemand.Modules)"
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Modules)" -Recurse -Destination $InstallPath -Force
-        Write-Host "Copying $($MetersOnDemand.Commands)"
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Commands)" -Recurse -Destination $InstallPath -Force
-        Write-Host "Copying cache.json"
         Copy-Item -Path "$($RootConfigPath)\cache.json" -Destination $InstallPath -Force
+        
+        $UserConfig = "$($InstallPath)\config.json"
+        Write-Host "Creating default configuration file"
+        $Config = New-Config
+        if (Test-Path $UserConfig) {
+            Write-Host "Merging existing user settings"
+            $Config = Read-Json -Path $UserConfig | Merge-Object -Source $Config
+        }
+        Out-Json -Object $Config -Path $UserConfig
 
         Write-Host "Adding '$InstallPath' to PATH"
         Set-PathVariable -AddPath $InstallPath
@@ -381,7 +379,7 @@ try {
                 return Set-Config $Parameter $Option
             }
             if ($Parameter) {
-                return Write-ConfigOption $Parameter
+                return Write-ConfigOption $Parameter 
             }
             Write-FormattedConfig
             break

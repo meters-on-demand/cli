@@ -1,5 +1,5 @@
 @echo off
 setlocal
 set PSScript=%~dp0MetersOnDemand.ps1
-Powershell -ExecutionPolicy Bypass -File "%PSScript%" %*
+Powershell -ExecutionPolicy Bypass -NoProfile -File "%PSScript%" %*
 endlocal

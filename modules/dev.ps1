@@ -74,8 +74,8 @@ function New-Skin {
         throw "Skin already exists."
     }
 
-    $o = New-Item -ItemType Directory -Path $ConfigPath
-    $o = New-Item -ItemType Directory -Path $ResourcesPath
+    New-Item -ItemType Directory -Path $ConfigPath | Out-Null 
+    New-Item -ItemType Directory -Path $ResourcesPath | Out-Null
 
     # Create Mond.inc
     @"
@@ -162,7 +162,6 @@ function New-Lock {
 
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
-    $RainmeterDirectory = $Cache.RainmeterDirectory
 
     $plugins = Get-Plugins -RootConfig $RootConfig
 

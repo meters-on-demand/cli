@@ -11,7 +11,14 @@ function Search {
         $Quiet
     )
 
-    $Skins = $MetersOnDemand.Cache.Skins
+    $Config = $MetersOnDemand.Config
+    $Cache = $MetersOnDemand.Cache
+
+    if ($Config.AlwaysUpdate) {
+        $Cache = Add-SkinLists -Cache $Cache | Save-Cache
+    }
+
+    $Skins = $Cache.Skins
 
     if (!$Query) { $Query = ".*" }
     if (!$Property) { $Property = "full_name" }

@@ -1,10 +1,26 @@
+function New-Config {
+    return [PSCustomObject]@{
+        AlwaysUpdate = $True
+    }
+}
+
 function Get-Config {
     if (Test-Path -Path $MetersOnDemand.ConfigFile) {
-        return Get-Content -Path $MetersOnDemand.ConfigFile | ConvertFrom-Json
+        return Read-Json -Path $MetersOnDemand.ConfigFile
     }
     else {
         throw "Config file does not exist."
     }
+}
+
+function Test-ConfigOption {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, Position = 0)]
+        [string]
+        $Option
+    )
+    if ($null -eq (New-Config).$Option) { return $False } else { return $True }
 }
 
 function Write-ConfigOption {
@@ -14,12 +30,8 @@ function Write-ConfigOption {
         [string]
         $Option
     )
-
-    $Config = $MetersOnDemand.Config
-    $Value = $Config.$Option
-    if ($null -eq $Value) { throw "$($Option) is not a mond setting" }
-    Write-Host "$($Option) = $($Value)"
-
+    if (!(Test-ConfigOption $Option)) { throw "$($Option) is not a mond setting" }
+    return $MetersOnDemand.Config.$Option
 }
 
 function Set-Config {
@@ -37,18 +49,15 @@ function Set-Config {
     )
 
     if ($Option -like "") { throw "Cannot set configuration option '' (empty string)" }
+    if (!(Test-ConfigOption $Option)) { throw "$($Option) is not a mond configuration setting" }
 
     $Config = $MetersOnDemand.Config
-    if ($null -eq $Config.$Option) { throw "$($Option) is not a mond configuration setting" }
 
     if ($Value -match "^(true|1)$") { $Config.$Option = $True } 
     elseif ($Value -match "^(false|0)$") { $Config.$Option = $False } 
     else { $Config.$Option = $Value }
 
-    Write-Host $Config
-    Save-Config -Config $Config -Quiet
-    if (!$Quiet) { return $Config }
-
+    Save-Config -Config $Config -Quiet:$Quiet
 }
 
 function Save-Config {
@@ -62,8 +71,5 @@ function Save-Config {
         $Quiet
     )
     $MetersOnDemand.Config = $Config
-    $Config | ConvertTo-Json -Depth 4 | Out-File -FilePath $MetersOnDemand.ConfigFile
-    if (!$Quiet) {
-        return $Config
-    }
+    Out-Json -Quiet:$Quiet -Object $Config -Path $MetersOnDemand.ConfigFile
 }

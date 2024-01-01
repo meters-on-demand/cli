@@ -9,9 +9,10 @@ function Get-SkinObject {
         $RootConfig
     )
     $Cache = $MetersOnDemand.Cache
-    if($FullName) {
+    if ($FullName) {
         $Skin = $Cache.SkinsByFullName.$FullName
-    } else {
+    }
+    else {
         $Skin = $Cache.SkinsBySkinName.$RootConfig
     }
     if (-not $Skin) { throw "No skin named $($FullName) found" }
@@ -289,4 +290,54 @@ function Download {
     Invoke-WebRequest -Uri $Skin.latest_release.browser_download_url -OutFile $MetersOnDemand.SkinFile
 
     return $MetersOnDemand.SkinFile
+}
+
+function Merge-Object {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0)]
+        [pscustomobject]
+        $Target,
+        [Parameter(Mandatory)]
+        [pscustomobject]
+        $Source,
+        [Parameter()]
+        [switch]
+        $Override
+    )
+    $Source | ToIteratable | ForEach-Object {
+        $Key = $_.Name
+        $Value = $_.Value
+        if ((!$Target.$Key) -or ($Override)) {
+            $Target | Add-Member -MemberType NoteProperty -Name $Key -Value $Value -Force
+        }
+    }
+    return $Target
+}
+
+function Out-Json {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0)]
+        [pscustomobject]
+        $Object,
+        [Parameter(Mandatory)]
+        [string]
+        $Path,
+        [Parameter()]
+        [switch]
+        $Quiet
+    )
+    $Object | ConvertTo-Json -Depth 4 | Out-File -FilePath $Path -Force
+    if (!$Quiet) { return $Object }
+}
+
+function Read-Json {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0)]
+        [string]
+        $Path
+    )
+    return Get-Content -Path $Path | ConvertFrom-Json
 }
