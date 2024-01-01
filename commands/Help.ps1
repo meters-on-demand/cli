@@ -10,7 +10,7 @@ function Help {
     $commands = @(
         [pscustomobject]@{
             Name        = "update"
-            Signature   = "$forceSig"
+            Signature   = ""
             Description = "updates the skins list"
         }, 
         [pscustomobject]@{

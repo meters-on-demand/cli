@@ -109,8 +109,12 @@ $MetersOnDemand = [PSCustomObject]@{
     ScriptRoot     = ""
     PreInstallRoot = ""
     CacheFile      = ""
+    ConfigFile     = ""
     LogFile        = ""
     SkinFile       = ""
+    Config         = [PSCustomObject]@{
+        AlwaysUpdate = $False
+    }
 }
 
 # If running under PSRM in Rainmeter
@@ -130,6 +134,7 @@ else {
 
 # Files
 $MetersOnDemand.CacheFile = "$($MetersOnDemand.ScriptRoot)\cache.json"
+$MetersOnDemand.ConfigFile = "$($MetersOnDemand.ScriptRoot)\config.json"
 $MetersOnDemand.LogFile = "$($MetersOnDemand.ScriptRoot)\mond.log"
 $MetersOnDemand.SkinFile = "$($MetersOnDemand.ScriptRoot)\skin.rmskin"
 
@@ -278,9 +283,9 @@ try {
     if (($Command -eq "help") -and !$isDotSourced) { return Help }
     if ($Command -eq "version") { return Version }
 
-    # Create the cache
-    if ($Command -eq "update") { $Force = $True }
+    # Read the cache and config
     $MetersOnDemand.Cache = Get-Cache
+    $MetersOnDemand.Config = Get-Config
 
     if ($isDotSourced) { return }
 
@@ -372,7 +377,7 @@ try {
             break
         }
         "config" {
-            Config
+            Write-FormattedConfig
             break
         }
         Default {

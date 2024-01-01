@@ -30,25 +30,32 @@ function Test-DevCommand {
 
 }
 
-function Config {
-
+function Write-FormattedConfig {
+    $Config = $MetersOnDemand.Config
     $Cache = $MetersOnDemand.Cache
 
+    # Get counts from cache
     $skinsCount = ($Cache.Skins | Measure-Object).Count
     $installedCount = ($Cache.Installed | ToIteratable | Measure-Object).Count
 
+    # Format cache values
     $Cache.Skins = "@(@{ full_name = `"meters-on-demand/cli`", skin_name = `"Meters on Demand`", ... }, $($skinsCount - 1) more items... )"
     $Cache.SkinsByFullName = "@{ `"meters-on-demand/cli`": @{ ... }, $($skinsCount - 1) more items... }"
     $Cache.SkinsBySkinName = "@{ `"Meters on Demand`": @{ ... }, $($skinsCount - 1) more items... }"
     $Cache.Installed = "@{ `"meters-on-demand/cli`": `"$($MetersOnDemand.Version)`", $($installedCount - 1) more items... }"
-    if(($Cache.Updateable | ToIteratable | Measure-Object).Count -eq 0) { $Cache.UpdateAble = "@{ }" }
-    Write-Host "`n`$MetersOnDemand.Cache" -ForegroundColor Green
-    $Cache
+    if (($Cache.Updateable | ToIteratable | Measure-Object).Count -eq 0) { $Cache.UpdateAble = "@{ }" }
 
+    # Mark previously written values
+    $MetersOnDemand.Config = "@{ ... } (see above)"
     $MetersOnDemand.Cache = "@{ ... } (see above)"
-    Write-Host "`n`$MetersOnDemand" -ForegroundColor Green
-    $MetersOnDemand
 
+    # Write everything
+    Write-Host "Configuration settings (`$MetersOnDemand.Config)" -ForegroundColor Blue -NoNewline
+    $Config | Format-List
+    Write-Host "Cache (`$MetersOnDemand.Cache)" -ForegroundColor Blue -NoNewline
+    $Cache | Format-List
+    Write-Host "Self (`$MetersOnDemand)" -ForegroundColor Blue -NoNewline
+    $MetersOnDemand | Format-List
 }
 
 function New-Skin {
@@ -133,7 +140,7 @@ function Open-Skin {
     }
     
     $ConfigEditor = $Cache.ConfigEditor
-    if($ConfigEditor -like "*notepad.exe") {
+    if ($ConfigEditor -like "*notepad.exe") {
         $ConfigEditor = "explorer.exe"
     }
 

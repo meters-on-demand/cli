@@ -13,8 +13,6 @@ function Install {
 
     if ($FullName -match "^http|\.git$") { return Install-FromGit -Uri $FullName -Force:$Force }
 
-    $Cache = $MetersOnDemand.Cache
-
     try {
         $Skin = Get-SkinObject -FullName $FullName
     }
