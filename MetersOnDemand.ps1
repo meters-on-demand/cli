@@ -377,6 +377,12 @@ try {
             break
         }
         "config" {
+            if ($Parameter -and $Option) {
+                return Set-Config $Parameter $Option
+            }
+            if ($Parameter) {
+                return Write-ConfigOption $Parameter
+            }
             Write-FormattedConfig
             break
         }

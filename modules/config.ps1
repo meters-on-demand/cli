@@ -7,6 +7,21 @@ function Get-Config {
     }
 }
 
+function Write-ConfigOption {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, Position = 0)]
+        [string]
+        $Option
+    )
+
+    $Config = $MetersOnDemand.Config
+    $Value = $Config.$Option
+    if ($null -eq $Value) { throw "$($Option) is not a mond setting" }
+    Write-Host "$($Option) = $($Value)"
+
+}
+
 function Set-Config {
     [CmdletBinding()]
     param (
@@ -21,9 +36,18 @@ function Set-Config {
         $Quiet
     )
 
+    if ($Option -like "") { throw "Cannot set configuration option '' (empty string)" }
+
     $Config = $MetersOnDemand.Config
-    $Config | Add-Member -NotePropertyName "$Option" -NotePropertyValue "$Value" | Save-Config -Quiet
-    if (!Quiet) { return $Config }
+    if ($null -eq $Config.$Option) { throw "$($Option) is not a mond configuration setting" }
+
+    if ($Value -match "^(true|1)$") { $Config.$Option = $True } 
+    elseif ($Value -match "^(false|0)$") { $Config.$Option = $False } 
+    else { $Config.$Option = $Value }
+
+    Write-Host $Config
+    Save-Config -Config $Config -Quiet
+    if (!$Quiet) { return $Config }
 
 }
 
