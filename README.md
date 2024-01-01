@@ -19,21 +19,30 @@ Check the TO-DO below if you want to help!
 # TO-DO:
 
 - [x] Put $Cache inside $MetersOnDemand, initialize cache with New-Cache stuff already there
-- [ ] Clean function signatures
+  - [x] Look into using PowerShell modules to isolate $MetersOnDemand into module scope
+  - Too hard and Microsoft ain't doin shit about it
+- [ ] Clean function signatures and the code base in general skull
+- [ ] Add `Set-Alias` into powershell profile to access MetersOnDemand.ps1 directly in PowerShell
+  - Ask the user before doing this. Maybe use registry or something to store if the user has already been asked? Or the config file. 
 - [ ] Make `uninstall` and `restore` send bangs to Rainmeter
-- [ ] Make the API work with any git source. Git itself has tags which are the way the API tracks skin updates.
-  - If a skin is from not-GitHub, `git clone` it and use `mond plugin` to install its plugins
-  - This would also enable silent installs
-  - Make `mond install` git clone by default
-  - Make `mond install` accept a git uri and use git clone on it directly. Useful if the API is down or the skin not registered.
-- [ ] Work on `mond plugin [-Plugin] <plugin> [-Version <version>]` and the [plugin repository](https://github.com/meters-on-demand/plugins)
-  - Should download and install the plugin from the plugin repository
-  - In the future it would be used to do silent installs and installs from git sources that can't host releases
-- [ ] Implement fuzzy search :3
-- [ ] Investigate getting rid of `mond update` it's annoying and most of the time commands that need it will auto update anyway(?)
-  - For example, `mond install <full_name>` could internally `mond update` and try again before failing
 - [ ] Use Version from mond.inc for skins that have it in `Get-InstalledSkins`
-- [ ] Use PSRM in Installer.ini to show status messages while installing (?)
+- [ ] Work on `mond plugin [-Plugin] <plugin> [-Version <version>]` and the [plugin repository](https://github.com/meters-on-demand/plugins)
+  - `mond plugin` is needed for silent installs and installs from git sources in general
+  - Using a repository is kinda sussy since it's just .dll files. At least it's public but still 
+  - Investigate how easy it'd be to scrape the forums or how ethical it'd be to include the .dlls into a repository
+- [x] Make the API work with any git source. Git itself has tags which are the way the API tracks skin updates.
+  - This would also enable silent installs
+  - [x] Make `mond install` accept a git uri and use git clone on it directly. Useful if the API is down or the skin not registered.
+  - [ ] Document `mond install <uri>`
+  - [ ] Make `mond install` check the API even if installing from git uri
+  - [ ] Use `mond plugin` to install plugins for git cloned skins
+  - [ ] Make `mond install` git clone by default
+- [x] Investigate getting rid of `mond update` it's annoying and most of the time commands that need it will auto update anyway(?)
+  - For example, `mond install <full_name>` could internally `mond update` and try again before failing\
+  - Added `mond config AlwaysUpdate 1` for this
+  - Document `mond config`
+- [x] Use PSRM in Installer.ini to show status messages while installing (?)
+- [ ] Implement fuzzy search :3
 - [ ] Packager skin that looks exactly like the skin packager GUI but it can
   - Read existing .rmskins by drag + drop
   - Create a mond.inc to save the package information
