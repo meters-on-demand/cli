@@ -20,7 +20,8 @@ function Plugin {
     $isBuiltIn = Test-BuiltIn -Plugin $PluginName
 
     if ($isBuiltIn) { return }
+    if (Get-LatestPlugin -Plugin $PluginName -Quiet) { return }
 
-    Write-Host "Skin requires plugin $($PluginName), install it or the skin might not work properly"
+    Write-Warning "Skin uses plugin '$($PluginName)' which is not installed. Install it or the skin might not work properly"
 
 }

@@ -11,7 +11,7 @@ function Install {
         $FirstMatch
     )
 
-    if ($FullName -match "^http|\.git$") { return Install-FromGit -Uri $FullName }
+    if ($FullName -match "^http|\.git$") { return Install-FromGit -Uri $FullName -Force:$Force }
 
     $Cache = $MetersOnDemand.Cache
 
@@ -78,7 +78,7 @@ function Write-InstallCache {
     if (!$Version) {
         $Skin = Get-SkinObject -FullName $FullName
         $Version = $Skin.latest_release.tag_name
-    }    
+    }
 
     if ($installedVersion -ne $Version) {
         $Installed | Add-Member -MemberType NoteProperty -Name "$FullName" -Value $Version -Force
@@ -102,7 +102,7 @@ function Install-FromGit {
     if (!(Get-Command git)) { 
         Write-Host "Can't install from remote source without git"
         Write-Host "Install git with " -NoNewline
-        Write-Host "winget install Git.Git" -ForegroundColor White
+        Write-Host "'winget install Git.Git'" -ForegroundColor White
         return
     }
 
@@ -111,45 +111,62 @@ function Install-FromGit {
     $FullName = $Uri -replace '^.*\/(.*?\/.*?)(?:\.git)?$', '$1'
     $RootConfig = $FullName.Split('/')[1]
     
-    Test-Installed -FullName $FullName -Force:$Force
-    
-    # Get latest tag from git
     $temp = Clear-Temp
     $origin = $pwd
     Set-Location -Path "$($temp)"
+    
+    Test-Installed -FullName $FullName -Force:$Force
 
-    git clone $Uri . 
-    git fetch --tags
-
-    $tagName = git describe --tags --abbrev=0
-    $tagCommit = (git describe --tags --long) -replace "$($tagName)", ""
-
-    git checkout $tagCommit
-
-    Set-Location -Path "$($origin)"
-
-    Install-Silently -Path "$temp" -RootConfig $RootConfig
-
-    Clear-Temp -Quiet
-
-    Write-InstallCache -FullName $FullName -Version "$tagName"
-
+    try {
+        Write-Host "Cloning '$($FullName)'"
+        git clone $Uri . --quiet
+        Write-Host "Fetching tags..."
+        git fetch --tags --quiet
+        $tagName = git describe --tags --abbrev=0
+        if ($tagName) {
+            Write-Host "Installing latest tag '$($tagName)'"
+            git reset "$tagName" --hard --quiet
+        }
+        else {
+            $tagName = "latest"
+            Write-Warning "Skin has no releases or git tags, installing the latest commit instead... It might be unstable."
+        }
+        Install-Silently -RootConfig $RootConfig -Path "$temp"
+        Write-InstallCache -FullName $FullName -Version "$tagName"
+    }
+    catch {
+        Write-Exception -Exception $_
+    }
+    finally {
+        Clear-Temp -Quiet
+        Set-Location -Path "$($origin)"
+    }
 }
 
 function Install-Silently {
     param (
         [Parameter(Mandatory, Position = 0)]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter()]
+        [string]
+        $Path,
+        [Parameter()]
+        [switch]
+        $Quiet
     )
 
     $Cache = $MetersOnDemand.Cache
-    $SkinPath = $Cache.$SkinPath
-    $temp = "$($SkinPath)\$($MetersOnDemand.TempDirectory)"
-    $Destination = "$($SkinPath)\$($RootConfig)"
+    $SkinPath = $Cache.SkinPath
 
+    if (!$Path) { $Path = "$($SkinPath)\$($MetersOnDemand.TempDirectory)" }
+    $Destination = "$($SkinPath)\$($RootConfig)"
     if (Test-Path -Path $Destination) { Remove-Item -Path $Destination -Force -Recurse }
-    Move-Item -Path "$temp\*" -Destination $Destination
+    Move-Item -Path "$Path\*" -Destination $Destination
     Get-Plugins -RootConfig "$RootConfig" | ForEach-Object { Plugin -PluginName "$($_)" }
+
+    if (!$Quiet) {
+        Write-Host "Installed $($RootConfig)!" -ForegroundColor Green
+    }
 
 }

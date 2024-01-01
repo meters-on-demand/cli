@@ -25,12 +25,14 @@ function Get-LatestPlugin {
     param (
         [Parameter(Mandatory)]
         [string]
-        $Plugin
+        $Plugin,
+        [Parameter()]
+        [switch]
+        $Quiet
     )
 
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
-    $RainmeterDirectory = $Cache.RainmeterDirectory
 
     $vault = "$($SkinPath)\@Vault"
     if (!(Test-Path $vault)) { throw "@Vault directory is missing!" }
@@ -38,16 +40,13 @@ function Get-LatestPlugin {
     $pluginDirectory = "$($vault)\Plugins\$($plugin)"
 
     if (!(Test-Path -Path $pluginDirectory)) {
-        if (!$RainmeterDirectory) {
-            Write-Host "Can't test if plugin is built-in without -RainmeterDirectory"
-            Write-Host "Plugin $($plugin) is either built-in or not installed"
-            return $false
-        }
         if (Test-BuiltIn -Plugin $plugin) {
             # Maybe log?
         }
         else {
-            Write-Host "Skipping $($plugin), it's either a built-in measure (safe to ignore) or not installed." -ForegroundColor Yellow
+            if (!$Quiet) {
+                Write-Host "Skipping $($plugin), it's either a built-in measure (safe to ignore) or not installed." -ForegroundColor Yellow
+            }
         }
         return $false
     }
@@ -65,7 +64,7 @@ function Get-LatestPlugin {
     return $latest
 }
 
-function Get-Plugins { 
+function Get-Plugins {
     param (
         [Parameter(Mandatory)]
         [string]
