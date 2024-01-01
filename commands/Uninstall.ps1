@@ -12,14 +12,14 @@ function Uninstall {
     )
 
     $Cache = $MetersOnDemand.Cache
-    $installed = $Cache.Installed.$FullName
-    if (-not $installed) { 
+    $Installed = $Cache.Installed.$FullName
+    if (-not $Installed) { 
         if ($Force) { return }
         throw "Skin $FullName is not installed"
     }
 
     $skinPath = $Cache.SkinPath
-    $skinName = $Cache.Skins.$FullName.skin_name
+    $skinName = $Cache.SkinsByFullName.$FullName.skin_name
 
     $removedDirectory = RemovedDirectory
     $path = "$($skinPath)\$($skinName)"
@@ -29,10 +29,7 @@ function Uninstall {
     }
     Move-Item -Path "$($path)" -Destination $removedDirectory
 
-    # Update cache
-    $Cache.Installed.psobject.properties.Remove($FullName)
-    $Cache.Updateable.psobject.properties.Remove($FullName)
-    Save-Cache $Cache -Quiet
+    $Cache | Add-Installed | Save-Cache $Cache -Quiet
 
     # Report results
     if (!$Quiet) {

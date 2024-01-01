@@ -13,7 +13,7 @@ function Restore {
 
     $Cache = $MetersOnDemand.Cache
     $skinPath = $Cache.SkinPath
-    $skinName = $Cache.Skins.$FullName.skin_name
+    $skinName = $Cache.SkinsByFullName.$FullName.skin_name
 
     $removedDirectory = RemovedDirectory
     $restorePath = "$($removedDirectory)\$($skinName)"
@@ -33,8 +33,7 @@ function Restore {
     Move-Item -Path "$($restorePath)" -Destination $skinPath -Force
 
     # Update cache
-    $Cache = Get-InstalledSkins -Cache $Cache
-    Save-Cache $Cache -Quiet
+    $Cache | Add-Installed | Save-Cache -Quiet
 
     # Report results
     if (!$Quiet) {

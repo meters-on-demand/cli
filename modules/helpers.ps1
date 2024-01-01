@@ -1,12 +1,19 @@
 function Get-SkinObject {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = "FullName")]
     param (
-        [Parameter(ValueFromPipeline, Mandatory, Position = 0)]
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0, ParameterSetName = "FullName")]
         [string]
-        $FullName
+        $FullName,
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0, ParameterSetName = "RootConfig")]
+        [string]
+        $RootConfig
     )
     $Cache = $MetersOnDemand.Cache
-    $Skin = $Cache.Skins.$FullName
+    if($FullName) {
+        $Skin = $Cache.SkinsByFullName.$FullName
+    } else {
+        $Skin = $Cache.SkinsBySkinName.$RootConfig
+    }
     if (-not $Skin) { throw "No skin named $($FullName) found" }
     return $Skin
 }
@@ -31,7 +38,7 @@ function RemovedDirectory {
 
 function ToIteratable {
     param(
-        [Parameter(Mandatory, Position = 1, ValueFromPipeline)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
         [pscustomobject]
         $Object
     )

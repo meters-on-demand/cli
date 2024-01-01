@@ -34,11 +34,14 @@ function Config {
 
     $Cache = $MetersOnDemand.Cache
 
-    $skinsCount = ($Cache.Skins | ToIteratable | Measure-Object).Count
+    $skinsCount = ($Cache.Skins | Measure-Object).Count
     $installedCount = ($Cache.Installed | ToIteratable | Measure-Object).Count
 
-    $Cache.Skins = "@{ `"meters-on-demand/cli`": @{ ... }, $($skinsCount - 1) more items... }"
+    $Cache.Skins = "@(@{ full_name = `"meters-on-demand/cli`", skin_name = `"Meters on Demand`", ... }, $($skinsCount - 1) more items... )"
+    $Cache.SkinsByFullName = "@{ `"meters-on-demand/cli`": @{ ... }, $($skinsCount - 1) more items... }"
+    $Cache.SkinsBySkinName = "@{ `"Meters on Demand`": @{ ... }, $($skinsCount - 1) more items... }"
     $Cache.Installed = "@{ `"meters-on-demand/cli`": `"$($MetersOnDemand.Version)`", $($installedCount - 1) more items... }"
+    if(($Cache.Updateable | ToIteratable | Measure-Object).Count -eq 0) { $Cache.UpdateAble = "@{ }" }
     Write-Host "`n`$MetersOnDemand.Cache" -ForegroundColor Green
     $Cache
 

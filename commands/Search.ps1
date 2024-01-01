@@ -18,8 +18,7 @@ function Search {
     if (!$Quiet) { Write-Host "Searching for `"$Query`"" }
 
     $Results = @()
-    foreach ($Entry in ToIteratable -Object $Skins ) {
-        $Skin = $Entry.Value
+    foreach ($Skin in $Skins) {
         if ($Skin.$Property -match $Query) { $Results += $Skin }
     }
 

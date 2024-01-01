@@ -1,47 +1,76 @@
 function New-Cache {
-    return [PSCustomObject]@{
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [psobject]
+        $NoteProperties
+    )
+
+    $Cache = [PSCustomObject]@{
         Skins      = [pscustomobject]@{ };
         Installed  = [pscustomobject]@{ };
         Updateable = [pscustomobject]@{ };
     }
+
+    foreach ($property in (ToIteratable $NoteProperties)) {
+        $Cache | Add-Member -MemberType NoteProperty -Name "$($property.name)" -Value "$($property.value)" -Force
+    }
+
+    return $Cache
+}
+
+function Add-SkinLists {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0)]
+        [pscustomobject]
+        $Cache
+    )
+
+    $CurrentDate = Get-Date -Format "MM-dd-yy"
+    $Cache | Add-Member -MemberType NoteProperty -Name "LastChecked" -Value $CurrentDate -Force
+
+    $Skins = Get-SkinList -Cache $Cache
+    $Cache | Add-Member -MemberType NoteProperty -Name "Skins" -Value $Skins -Force
+    $Cache | Add-Member -MemberType NoteProperty -Name "SkinsBySkinName" -Value (Get-SkinsBySkinName -Skins $Skins) -Force
+    $Cache | Add-Member -MemberType NoteProperty -Name "SkinsByFullName" -Value (Get-SkinsByFullName -Skins $Skins) -Force
+
+    $Cache = Add-Installed $Cache
+    return $Cache
+}
+
+function Add-Installed {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline, Position = 0)]
+        [pscustomobject]
+        $Cache
+    )
+    $Installed = Get-InstalledSkins -Cache $Cache
+    $Cache | Add-Member -MemberType NoteProperty -Name "Installed" -Value $Installed -Force
+
+    $Updateable = Get-UpdateableSkins -Cache $Cache
+    $Cache | Add-Member -MemberType NoteProperty -Name "Updateable" -Value $Updateable -Force
+    return $Cache
 }
 
 function Get-Cache {
-    $Cache = New-Cache
     if (Test-Path -Path $MetersOnDemand.CacheFile) {
-        $Cache = Get-Content -Path $MetersOnDemand.CacheFile | ConvertFrom-Json
+        return Get-Content -Path $MetersOnDemand.CacheFile | ConvertFrom-Json
     }
-
-    $Cache = Get-InstalledSkins -Cache $Cache
-
-    $CurrentDate = Get-Date -Format "MM-dd-yy"
-    if ($Cache.LastChecked -ne $CurrentDate) {
-        $Cache = Update-SkinList -Cache $Cache
-        return $Cache
+    else {
+        throw "Cache file does not exist."
     }
-
-    Save-Cache -Cache $Cache -Quiet
-    return $Cache
-
 }
 
-function Update-SkinList {
+function Get-SkinList {
     param (
         [Parameter(Mandatory)]
         [PSCustomObject]
         $Cache,
         [Parameter()]
         [switch]
-        $SkipInstalled,
-        [Parameter()]
-        [switch]
-        $Force,
-        [Parameter()]
-        [switch]
-        $Quiet,
-        [Parameter()]
-        [switch]
-        $SkipSave
+        $Quiet
     )
 
     $response = $false
@@ -54,84 +83,104 @@ function Update-SkinList {
             Write-Exception "Couldn't reach API, using cache..."
         }
     }
-    if (!$response) {
-        if (!$SkipInstalled) { 
-            $Cache = Get-InstalledSkins -Cache $Cache
-            if (!$SkipSave) {
-                Save-Cache -Cache $Cache -Quiet
-            }
-        }
-        return $Cache
-    }
+    if (!$response) { return $Cache.Skins }
 
     $SkinsArray = $response.Content | ConvertFrom-Json
-    # PSCustomObject bullshit
-    $Skins = [PSCustomObject]@{ }
-    $SkinsArray | % {
-        $Skins | Add-Member -MemberType NoteProperty -Name "$($_.full_name)" -Value $_
-    }
+    return $SkinsArray
+}
 
-    $Cache | Add-Member -MemberType NoteProperty -Name 'Skins' -Value $Skins -Force
-    $Cache | Add-Member -MemberType NoteProperty -Name 'LastChecked' -Value $CurrentDate -Force
+function Get-SkinsBySkinName {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline, Position = 0)]
+        [pscustomobject]
+        $Skins
+    )
 
-    if (-not $Cache.Installed) { $Cache | Add-Member -MemberType NoteProperty -Name 'Installed' -Value ([PSCustomObject] @{ }) -Force }
-    if (-not $Cache.Updateable) { $Cache | Add-Member -MemberType NoteProperty -Name 'Updateable' -Value ([PSCustomObject] @{ }) -Force }
+    if (!$Skins) { $Skins = $MetersOnDemand.Cache.Skins }
+    $SkinsBySkinName = [PSCustomObject]@{ }
+    $Skins | ForEach-Object {
+        $SkinsBySkinName | Add-Member -MemberType NoteProperty -Name "$($_.skin_name)" -Value $_ -Force
+    }
+    return $SkinsBySkinName
 
-    $Cache = Get-InstalledSkins -Cache $Cache
-    if (!$SkipSave) {
-        Save-Cache -Cache $Cache -Quiet
+}
+
+function Get-SkinsByFullName {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline, Position = 0)]
+        [pscustomobject]
+        $Skins
+    )
+
+    if (!$Skins) { $Skins = $MetersOnDemand.Cache.Skins }
+    $SkinsByFullName = [PSCustomObject]@{ }
+    $Skins | ForEach-Object {
+        $SkinsByFullName | Add-Member -MemberType NoteProperty -Name "$($_.full_name)" -Value $_ -Force
     }
-    if (!$Quiet) {
-        return $Cache
-    }
+    return $SkinsByFullName
+
 }
 
 function Get-InstalledSkins {
     param (
-        [Parameter()]
+        [Parameter(Mandatory)]
         [pscustomobject]
         $Cache
     )
 
-    if (!$Cache) {
-        $Cache = $MetersOnDemand.Cache
-    }
-
     $Skins = $Cache.Skins
     $SkinPath = $Cache.SkinPath
     $Installed = $Cache.Installed
-    $Updateable = [PSCustomObject]@{ }
 
     if (!(Test-Path -Path $SkinPath)) {
         throw "SkinPath ($SkinPath) does not exist"
     }
 
     $NewInstalled = ([PSCustomObject] @{ })
-    $skinFolders = Get-ChildItem -Path "$($SkinPath)" -Directory 
-    $IteratableSkins = ToIteratable -Object $Skins
-    foreach ($skinFolder in $skinFolders) {
-        foreach ($Entry in $IteratableSkins) {
-            $Skin = $Entry.Value
-            if ($Skin.skin_name -notlike $skinFolder.name) { continue }
-            $full_name = $Skin.full_name
-            $existing = $Installed.$full_name
-            $latest = $Skin.latest_release.tag_name
-            if ($existing) {
-                $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $existing
-                if ($existing -ne $latest) { 
-                    $Updateable | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
-                }
-            }
-            else { 
-                $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
-            }
+    $SkinsBySkinName = Get-SkinsBySkinName -Skins $Skins
+    Get-ChildItem -Path "$($SkinPath)\*" -Directory | ForEach-Object {
+        $RootConfig = $_.BaseName
+        $Skin = $SkinsBySkinName.$RootConfig
+        if (!$Skin) { return }
+        $full_name = $Skin.full_name
+        $existing = $Installed.$full_name
+        $latest = $Skin.latest_release.tag_name
+        if ($existing) {
+            $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $existing
+        }
+        else { 
+            $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
         }
     }
 
-    $Cache | Add-Member -MemberType noteproperty -Name 'Installed' -Value $NewInstalled -Force
-    $Cache | Add-Member -MemberType noteproperty -Name 'Updateable' -Value $Updateable -Force
+    return $NewInstalled
 
-    return $Cache
+}
+
+function Get-UpdateableSkins {
+    param (
+        [Parameter(Mandatory)]
+        [pscustomobject]
+        $Cache
+    )
+
+    $Updateable = [PSCustomObject]@{ }
+    $Skins = $Cache.Skins
+    $SkinsByFullName = $Cache.SkinsByFullName
+    $InstalledSkins = $Cache.Installed | ToIteratable
+
+    foreach ($entry in $InstalledSkins) {
+        $FullName = $entry.Name
+        $installed = $entry.Value
+        $latest = $SkinsByFullName.$FullName.version
+        if ($installed -ne $latest) { 
+            $Updateable | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
+        }
+    }
+
+    return $Updateable
 
 }
 

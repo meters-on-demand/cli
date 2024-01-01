@@ -115,9 +115,9 @@ function Install-FromGit {
     $origin = $pwd
     Set-Location -Path "$($temp)"
     
-    Test-Installed -FullName $FullName -Force:$Force
 
     try {
+        Test-Installed -FullName $FullName -Force:$Force
         Write-Host "Cloning '$($FullName)'"
         git clone $Uri . --quiet
         Write-Host "Fetching tags..."
@@ -132,10 +132,9 @@ function Install-FromGit {
             Write-Warning "Skin has no releases or git tags, installing the latest commit instead... It might be unstable."
         }
         Install-Silently -RootConfig $RootConfig -Path "$temp"
-        Write-InstallCache -FullName $FullName -Version "$tagName"
     }
     catch {
-        Write-Exception -Exception $_
+        throw $_
     }
     finally {
         Clear-Temp -Quiet

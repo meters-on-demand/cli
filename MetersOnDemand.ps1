@@ -221,14 +221,15 @@ function InstallMetersOnDemand {
         Write-Host "/////////////////"
 
         Write-Host "Creating the cache"
-        $Cache = New-Cache
-        $Cache | Add-Member -MemberType NoteProperty -Name "SkinPath" -Value "$SkinPath" -Force
-        $Cache | Add-Member -MemberType NoteProperty -Name "SettingsPath" -Value "$SettingsPath" -Force
-        $Cache | Add-Member -MemberType NoteProperty -Name "ProgramPath" -Value "$ProgramPath" -Force
-        $Cache | Add-Member -MemberType NoteProperty -Name "RainmeterDirectory" -Value "$RainmeterDirectory" -Force
-        $Cache | Add-Member -MemberType NoteProperty -Name "ConfigEditor" -Value "$ConfigEditor" -Force
-        $Cache = Update-SkinList -Cache $Cache -Force
-        Save-Cache -Cache $Cache
+        New-Cache -NoteProperties ([PSCustomObject]@{
+                SkinPath           = $SkinPath
+                SettingsPath       = $SettingsPath
+                ProgramPath        = $ProgramPath
+                RainmeterDirectory = $RainmeterDirectory
+                ConfigEditor       = $ConfigEditor
+            }) | Add-SkinLists | Save-Cache -Quiet
+
+        Write-Host "Copying from $RootConfigPath"
 
         Write-Host "Copying script files to '$InstallPath'"
         Write-Host "Copying $($MetersOnDemand.FileName)"
@@ -239,8 +240,8 @@ function InstallMetersOnDemand {
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Modules)" -Recurse -Destination $InstallPath -Force
         Write-Host "Copying $($MetersOnDemand.Commands)"
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Commands)" -Recurse -Destination $InstallPath -Force
-        Write-Host "Copying $($MetersOnDemand.CacheFile)"
-        Copy-Item -Path "$($MetersOnDemand.CacheFile)" -Destination $InstallPath -Force
+        Write-Host "Copying cache.json"
+        Copy-Item -Path "$($RootConfigPath)\cache.json" -Destination $InstallPath -Force
 
         Write-Host "Adding '$InstallPath' to PATH"
         Set-PathVariable -AddPath $InstallPath
@@ -298,7 +299,7 @@ try {
                 Write-Host "' to upgrade a skin."
                 return
             }
-            Update-SkinList -Cache $MetersOnDemand.Cache -Quiet
+            Get-Cache | Add-SkinLists | Save-Cache -Quiet
             Write-Host "Cache updated!"
             break
         }
