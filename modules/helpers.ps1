@@ -45,6 +45,7 @@ function Get-MondInc {
         [string]
         $RootConfig
     )
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
     $RootConfigPath = "$($SkinPath)\$($RootConfig)"
     if (Test-Path "$($RootConfigPath)\mond.inc") {
@@ -57,12 +58,20 @@ function Get-MondInc {
 }
 
 function Clear-Temp {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [switch]
+        $Quiet
+    )
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
     $temp = "$($SkinPath)\$($MetersOnDemand.TempDirectory)"
     if (!(Test-Path -Path "$temp")) {
         $__ = New-Item -ItemType Directory -Path $temp 
     }
-    $__ = Remove-Item -Path "$temp\*" -Recurse
+    $__ = Remove-Item -Path "$temp\*" -Recurse -Force
+    if (!$Quiet) { return $temp }
 }
 
 function Get-SkinInfo {
@@ -72,6 +81,7 @@ function Get-SkinInfo {
         $RootConfig
     )
 
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
 
     $Overrides = @{

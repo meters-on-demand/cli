@@ -32,8 +32,7 @@ function New-Package {
     # $RMSKIN
 
     # Temp path
-    $temp = "$($SkinPath)\$($MetersOnDemand.TempDirectory)"
-    Clear-Temp
+    $temp = Clear-Temp
 
     # Create RMSKIN.ini
     $ini = @"
@@ -66,7 +65,7 @@ Name=$($RMSKIN.SkinName)
     # Get plugins
     $plugins = Get-Plugins -RootConfig "$RootConfig"
     Write-Host "`nDetected plugins used in skin:" -ForegroundColor Blue
-    Write-Host $plugins.Keys
+    Write-Host $plugins
 
     # Copy the plugins
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins"
@@ -75,7 +74,7 @@ Name=$($RMSKIN.SkinName)
     if ($plugins.Length) {
         Write-Host "`nCollecting plugins for package..." -ForegroundColor Blue
     }
-    foreach ($plugin in $plugins.Keys) {
+    foreach ($plugin in $plugins) {
         $latest = Get-LatestPlugin -Plugin $plugin
         if ($latest) {
             Copy-Item -Path "$($latest.x86)\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
@@ -132,7 +131,7 @@ Name=$($RMSKIN.SkinName)
 
     Move-Item -Path "$($temp)\skin.rmskin" -Destination $OutputPath -Force
 
-    Clear-Temp
+    Clear-Temp -Quiet
 
     Write-Host "Final output at: " -NoNewline
     Write-Host "'$($OutputPath)'" -ForegroundColor White

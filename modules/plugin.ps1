@@ -75,7 +75,7 @@ function Get-Plugins {
     $SkinPath = $Cache.SkinPath
     $RootConfigPath = "$($SkinPath)\$($RootConfig)"
 
-    $plugins = @{}
+    $plugins = @()
 
     $files = Get-ChildItem -Path "$RootConfigPath" -Recurse -File -Include *.inc, *.ini
 
@@ -88,7 +88,7 @@ function Get-Plugins {
                 $plugin = "$($Matches[1])".ToLower()
                 $plugin = $plugin -replace "\.dll$", ""
                 $plugin = $plugin -replace "^plugins[\\\/]", ""
-                $plugins[$plugin] = $True
+                $plugins += $plugin
             }
         }
     }
