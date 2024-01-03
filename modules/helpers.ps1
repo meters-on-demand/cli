@@ -48,14 +48,18 @@ function ToIteratable {
 }
 
 function Get-MondInc {
+    [CmdletBinding(DefaultParameterSetName = "RootConfig")]
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline, ParameterSetName = "RootConfig")]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter(Mandatory, ParameterSetName = "Path")]
+        [string]
+        $Path
     )
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
-    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
+    $RootConfigPath = if ($RootConfig) { "$($SkinPath)\$($RootConfig)" } else { $Path }
     if (Test-Path "$($RootConfigPath)\mond.inc") {
         return "$($RootConfigPath)\mond.inc"
     }
@@ -83,10 +87,15 @@ function Clear-Temp {
 }
 
 function Get-SkinInfo {
+    [CmdletBinding(DefaultParameterSetName = "RootConfig")]
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline, ParameterSetName = "RootConfig")]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter(Mandatory, ParameterSetName = "Path")]
+        [Parameter(ParameterSetName = "RootConfig")]
+        [string]
+        $Path
     )
 
     $Cache = $MetersOnDemand.Cache
@@ -118,7 +127,13 @@ function Get-SkinInfo {
         MergeSkins       = $null
     }
 
-    $mondinc = Get-MondInc -RootConfig "$RootConfig"
+    if ($Path) {
+        $mondinc = Get-MondInc -Path $Path
+        if (!$RootConfig) { $RootConfig = (Split-Path -Path $Path -Leaf) }
+    }
+    else {
+        $mondinc = Get-MondInc -RootConfig $RootConfig
+    }
     
     if ($mondinc) {
         Get-Content -Path $mondinc | ForEach-Object {
@@ -126,6 +141,7 @@ function Get-SkinInfo {
             $option = "$($s[0])".Trim().ToLower()
             $value = "$($s[1])".Trim()
             if ($option -in @("variablefiles", "headerimage")) {
+                # TODO: Use | bruh
                 $value = $value -replace "#@#\\", "$($RootConfig)\@Resources\"
                 $value = $value -replace "#@#", "$($RootConfig)\@Resources\"
             }
@@ -139,6 +155,13 @@ function Get-SkinInfo {
         if ($option.Value) {
             $RMSKIN[$option.Name] = $option.Value
         }
+    }
+
+    # Handle loading .ini without #ROOTCONFIG#
+    if ($RMSKIN.LoadType -like "skin" -and $RMSKIN.Load -match "\.ini$") {
+        $loader = $RMSKIN.Load -replace "^$($RootConfig)\\", ""
+        $loader = "$($RootConfig)\$($loader)"
+        $RMSKIN.Load = $loader
     }
 
     # Handle MergeSkins
@@ -232,7 +255,7 @@ function Write-Exception {
     }
     $RmApi.LogError($Exception)
     if ($Breaking) {
-        $RmApi.Bang("[!About][!DeactivateConfig]")
+        Invoke-Bang "[!About][!DeactivateConfig]"
         exit
     }
 }

@@ -153,17 +153,40 @@ function Install-Silently {
         $Quiet
     )
 
+    Invoke-Bang "!Quit"
+
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
 
+    $SkinInfo = Get-SkinInfo -Path $Path -RootConfig $RootConfig
+    if ($SkinInfo.SkinName) {
+        $RootConfig = $SkinInfo.SkinName
+    }
+    
     if (!$Path) { $Path = "$($SkinPath)\$($MetersOnDemand.TempDirectory)" }
     $Destination = "$($SkinPath)\$($RootConfig)"
     if (Test-Path -Path $Destination) { Remove-Item -Path $Destination -Force -Recurse }
     Copy-Item -Recurse -Path "$Path" -Destination $Destination
     Get-Plugins -RootConfig "$RootConfig" | ForEach-Object { Plugin -PluginName "$($_)" }
 
-    if (!$Quiet) {
-        Write-Host "Installed $($RootConfig)!" -ForegroundColor Green
+    if ($Quiet) { return Invoke-Bang -StartRainmeter }
+
+    Write-Host "Installed $($RootConfig)!" -ForegroundColor Green
+    
+    $StartBang = ""
+    if ($SkinInfo.LoadType -and $SkinInfo.Load) {
+        if ($SkinInfo.LoadType -like "skin") {
+            Write-Host "Loading included skin!"
+            $loads = $SkinInfo.Load -split { $_ -eq '\' -or $_ -eq '/' }
+            $StartBang = "[!ActivateConfig `"$($loads[0])`" `"$($loads[1])`"]"
+        }
+        else {
+            # TODO: Make layout loading work 
+            Write-Host "Can't load layout (not implemented)"
+            # $StartBang = "[!LoadLayout `"$($SkinInfo.Load)`"]"
+        }
     }
+
+    Invoke-Bang -Bang $StartBang -StartRainmeter
 
 }

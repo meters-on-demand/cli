@@ -157,7 +157,7 @@ function Update {
     }
 
     $parentMeasure = $RmApi.GetMeasureName()
-    $RmApi.Bang("[!PauseMeasure `"$($parentMeasure)`"][!SetOption `"$($parentMeasure)`" UpdateDivider -1]")
+    Invoke-Bang "[!PauseMeasure `"$($parentMeasure)`"][!SetOption `"$($parentMeasure)`" UpdateDivider -1]"
 
     Write-Host "Updating MonD cache!"
     $MetersOnDemand.Cache = Get-Cache
@@ -252,7 +252,7 @@ function InstallMetersOnDemand {
         Write-Host "Successfully installed MonD $($MetersOnDemand.Version)!"
 
         if ($RmApi) {
-            $RmApi.Bang('[!About][!DeactivateConfig]')
+            Invoke-Bang "[!About][!DeactivateConfig]"
         }
     }
     catch {
@@ -269,7 +269,7 @@ if ($RmApi) {
         catch {
             $RmApi.LogError("$($_)")
             $_ | Out-File -FilePath $MetersOnDemand.LogFile -Append
-            $RmApi.Bang("[`"$($MetersOnDemand.LogFile)`"]")
+            Invoke-Bang "[`"$($MetersOnDemand.LogFile)`"]"
         }
     }
     return
