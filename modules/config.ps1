@@ -1,6 +1,8 @@
 function New-Config {
     return [PSCustomObject]@{
         AlwaysUpdate = $True
+        Load         = $True
+        LoadType     = "skin"
     }
 }
 
@@ -52,10 +54,21 @@ function Set-Config {
     if (!(Test-ConfigOption $Option)) { throw "$($Option) is not a mond configuration setting" }
 
     $Config = $MetersOnDemand.Config
-
-    if ($Value -match "^(true|1)$") { $Config.$Option = $True } 
-    elseif ($Value -match "^(false|0)$") { $Config.$Option = $False } 
-    else { $Config.$Option = $Value }
+    $v
+    switch ($Option) {
+        "LoadType" {
+            if ($Value -in @("skin", "layout")) { Break }
+            throw "Accepted values: @(`"Skin`", `"Layout`")" 
+        }
+        Default {
+            switch -regex ($Value) {
+                '^(true|1)$' { $v = $True ; Break }
+                '^(false|0)$' { $v = $False ; Break }
+                Default { $v = $Value }
+            }
+        }
+    }
+    $Config.$Option = $v
 
     Save-Config -Config $Config -Quiet:$Quiet
 }

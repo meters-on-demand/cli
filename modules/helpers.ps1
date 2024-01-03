@@ -364,3 +364,24 @@ function Read-Json {
     )
     return Get-Content -Path $Path | ConvertFrom-Json
 }
+
+function Yes-No {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0)]
+        [string]
+        $Question,
+        [Parameter()]
+        [boolean]
+        $Default = $True
+    )
+    if ($Default) { $Question += " [Y\n]" } else { $Question += " [y\N]" }
+    switch -regex (Read-Host $Question) {
+        'y|yes' { return $True }
+        'n|no' { return $False }
+        '\s*?' { return $Default }
+        Default {
+            Yes-No -Question $Question -Default $Default
+        }
+    }
+}
