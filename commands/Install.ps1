@@ -159,7 +159,7 @@ function Install-Silently {
     if (!$Path) { $Path = "$($SkinPath)\$($MetersOnDemand.TempDirectory)" }
     $Destination = "$($SkinPath)\$($RootConfig)"
     if (Test-Path -Path $Destination) { Remove-Item -Path $Destination -Force -Recurse }
-    Move-Item -Path "$Path\*" -Destination $Destination
+    Copy-Item -Recurse -Path "$Path" -Destination $Destination
     Get-Plugins -RootConfig "$RootConfig" | ForEach-Object { Plugin -PluginName "$($_)" }
 
     if (!$Quiet) {
