@@ -308,7 +308,7 @@ try {
     switch ($Command) {
         "update" {
             if ($Skin) { $Parameter = $Skin }
-            if ($Parameter) { 
+            if ($Parameter) {
                 Write-Host "Use '" -NoNewline -ForegroundColor Gray
                 Write-Host "mond upgrade $Parameter" -ForegroundColor White -NoNewline
                 Write-Host "' to upgrade a skin."
@@ -320,7 +320,7 @@ try {
         }
         "install" {
             if ($Skin) { $Parameter = $Skin }
-            if (-not $Parameter) { 
+            if (-not $Parameter) {
                 throw "Install requires the named parameter -Skin (Position = 1)"
             }
             Install -FullName $Parameter -Force:$Force -FirstMatch
@@ -328,7 +328,7 @@ try {
         }
         "list" {
             $Skins = @()
-            (ToIteratable -Object $MetersOnDemand.Cache.Installed) | ForEach-Object { 
+            (ToIteratable -Object $MetersOnDemand.Cache.Installed) | ForEach-Object {
                 $Skins += Get-SkinObject -FullName $_.name
             }
             Format-SkinList -Skins $Skins
@@ -336,7 +336,7 @@ try {
         }
         "upgrade" {
             if ($Skin) { $Parameter = $Skin }
-            if (-not $Parameter) { 
+            if (-not $Parameter) {
                 throw "Upgrade requires the named parameter -Skin (Position = 1)"
             }
             Upgrade -FullName $Parameter -Force:$Force
@@ -344,7 +344,7 @@ try {
         }
         "uninstall" {
             if ($Skin) { $Parameter = $Skin }
-            if (-not $Parameter) { 
+            if (-not $Parameter) {
                 throw "Uninstall requires the named parameter -Skin (Position = 1)"
             }
             Uninstall -FullName $Parameter -Force:$Force
@@ -352,7 +352,7 @@ try {
         }
         "restore" {
             if ($Skin) { $Parameter = $Skin }
-            if (-not $Parameter) { 
+            if (-not $Parameter) {
                 throw "Restore requires the named parameter -Skin (Position = 1)"
             }
             Restore -FullName $Parameter -Force:$Force
@@ -360,7 +360,7 @@ try {
         }
         "init" {
             if ($Skin) { $Parameter = $Skin }
-            if (-not $Parameter) { 
+            if (-not $Parameter) {
                 throw "Usage: mond init SkinName"
             }
             New-Skin -SkinName $Parameter
@@ -398,13 +398,7 @@ try {
         }
         "bang" {
             if ($Parameter -and !$Bang) { $Bang = $Parameter }
-            if (($StartRainmeter -or $StopRainmeter) -and !$Bang) {
-                return Invoke-Bang -StartRainmeter:$StartRainmeter -StopRainmeter:$StopRainmeter -Quiet:$Quiet
-            }
-            if ($StartRainmeter -or $StopRainmeter -or $Bang) { 
-                return Invoke-Bang -Bang $Bang -StartRainmeter:$StartRainmeter -StopRainmeter:$StopRainmeter -Quiet:$Quiet
-            }
-            else { throw "Specify either '[-Bang] <bangs>', '-StartRainmeter' or '-StopRainmeter'" }
+            return Invoke-Bang -Bang $Bang -StartRainmeter:$StartRainmeter -StopRainmeter:$StopRainmeter
             break
         }
         Default {
