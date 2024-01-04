@@ -5,6 +5,30 @@ function Test-BuiltIn {
         $Plugin
     )
 
+    $Measures = @(
+        "Calc",
+        "CPU",
+        "FreeDiskSpace",
+        "Loop",
+        "MediaKey",
+        "Memory",
+        "Net",
+        "NowPlaying",
+        "Plugin",
+        "Process",
+        "RecycleManager",
+        "Registry",
+        "Script",
+        "String",
+        "SysInfo",
+        "Time",
+        "Uptime",
+        "WebParser",
+        "WiFiStatus"
+    )
+
+    if ($Plugin -in $Measures) { return $True }
+
     $Cache = $MetersOnDemand.Cache
     $RainmeterDirectory = $Cache.RainmeterDirectory
 

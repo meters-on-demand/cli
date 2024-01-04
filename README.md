@@ -12,9 +12,42 @@ Check out the [Meters on Demand wiki](https://docs.rainmeter.skin/) for more inf
 
 # Contributing
 
+Check the TO-DO below if you want to help!
+
+Installing mond for development (requires mond):
+
+```ps
+Set-Location "$(mond SkinPath)"
+Remove-Item "Meters on Demand" -Recurse -Force
+git clone "https://github.com/meters-on-demand/cli.git" "Meters on Demand"
+Set-Location ".\Meters on Demand"
+mond refresh # Optional 
+```
+
+`mond refresh` runs the installer again to copy the script into #Mond
+
+When testing you can run `.\MetersOnDemand.ps1` directly instead of waiting for the refresh
+
+# Dev commands
+
 The cli has "hidden" developer commands. To see the list use `mond help dev`. Some of the hidden commands are useful for skin makers too. 
 
-Check the TO-DO below if you want to help!
+# Testing
+
+You should always run the tests when committing or at least before creating a PR to confirm everything still works.
+
+## Installing Pester
+
+```ps
+Install-Module Pester -Force
+Import-Module Pester -PassThru
+```
+
+## Running Pester tests, in the "Meters on Demand" directory
+
+```ps
+Invoke-Pester -Output Detailed
+```
 
 # TO-DO:
 

@@ -149,15 +149,17 @@ function Open-Skin {
 }
 
 function Refresh {
-    $Cache = $MetersOnDemand.Cache
-    Start-Process -FilePath "$($Cache.ProgramPath)" -ArgumentList "[!ActivateConfig `"$($MetersOnDemand.Installer.SkinName)`"]"
+    Invoke-Bang "[!ActivateConfig `"$($MetersOnDemand.Installer.SkinName)`"]" -Start
 }
 
 function New-Lock {
     param (
         [Parameter(Mandatory)]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter()]
+        [switch]
+        $Quiet
     )
 
     $Cache = $MetersOnDemand.Cache
@@ -169,7 +171,7 @@ function New-Lock {
 
     $output = "[Plugins]"
 
-    foreach ($plugin in $plugins.Keys) {
+    foreach ($plugin in $plugins) {
         $latest = Get-LatestPlugin -Plugin $plugin
         if ($latest) {
             $output += "`n$($plugin)=$($latest.Version)"
@@ -177,6 +179,7 @@ function New-Lock {
     }
 
     $output | Out-File -FilePath $outputFile
+    if (!$Quiet) { Write-Host $output }
 
 }
 

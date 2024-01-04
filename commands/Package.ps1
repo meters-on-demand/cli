@@ -2,7 +2,10 @@ function New-Package {
     param (
         [Parameter(Mandatory)]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter()]
+        [switch]
+        $Quiet
     )
 
     $Cache = $MetersOnDemand.Cache
@@ -23,28 +26,28 @@ function New-Package {
     if (!(Test-Path -Path $RootConfigPath)) { 
         throw "RootConfigPath '$($RootConfigPath)' does not exist." 
     }
-    Write-Host "Found ROOTCONFIG at " -NoNewline -ForegroundColor Gray 
-    Write-Host "$RootConfigPath" -ForegroundColor White
+    if (!$Quiet) {
+        Write-Host "Found ROOTCONFIG at " -NoNewline -ForegroundColor Gray 
+        Write-Host "$RootConfigPath" -ForegroundColor White
+    }
 
     # Get skin information
     $RMSKIN = Get-SkinInfo -RootConfig "$RootConfig"
-    Write-Host "`nSkin information:" -ForegroundColor Blue
-    # $RMSKIN
-
-    # Temp path
-    $temp = Clear-Temp
-
+    
     # Create RMSKIN.ini
     $ini = @"
 [rmskin]
 Name=$($RMSKIN.SkinName)
 "@
 
+    $temp = Clear-Temp
+    if (!$Quiet) { Write-Host "`nSkin information:" -ForegroundColor Blue }
+
     $ignoredOptions = @("Ignore", "HeaderImage", "SkinName")
     foreach ($option in $RMSKIN.GetEnumerator()) {
         if (("$($option.Name)" -notin $ignoredOptions) -and ($option.Value)) {
             $append = "$($option.Name)=$($option.Value)"
-            Write-Host $append
+            if (!$Quiet) { Write-Host $append }
             $ini += "`n$append"
         }
     }
@@ -64,14 +67,16 @@ Name=$($RMSKIN.SkinName)
     
     # Get plugins
     $plugins = Get-Plugins -RootConfig "$RootConfig"
-    Write-Host "`nDetected plugins used in skin:" -ForegroundColor Blue
-    Write-Host $plugins
+    if (!$Quiet) {
+        Write-Host "`nDetected plugins used in skin:" -ForegroundColor Blue
+        Write-Host $plugins
+    }
 
     # Copy the plugins
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins"
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\32bit"
     $__ = New-Item -ItemType Directory -Path "$($temp)\Plugins\64bit"
-    if ($plugins.Length) {
+    if ($plugins.Length -and !$Quiet) {
         Write-Host "`nCollecting plugins for package..." -ForegroundColor Blue
     }
     foreach ($plugin in $plugins) {
@@ -79,7 +84,7 @@ Name=$($RMSKIN.SkinName)
         if ($latest) {
             Copy-Item -Path "$($latest.x86)\*" -Destination "$($temp)\Plugins\32bit\" -Recurse -Include *.dll
             Copy-Item -Path "$($latest.x64)\*" -Destination "$($temp)\Plugins\64bit\" -Recurse -Include *.dll
-            Write-Host "Copied $plugin $($latest.Version)"
+            if (!$Quiet) { Write-Host "Copied $plugin $($latest.Version)" }
         }
     }
 
@@ -90,7 +95,7 @@ Name=$($RMSKIN.SkinName)
     }
     if ($header) {
         Copy-Item -Path $header -Destination "$($temp)\RMSKIN.bmp"
-        Write-Host "`nCopied header image to RMSKIN.bmp"
+        if (!$Quiet) { Write-Host "`nCopied header image to RMSKIN.bmp" }
     }
 
     # Copy the layout
@@ -100,7 +105,7 @@ Name=$($RMSKIN.SkinName)
         if (!(Test-Path -Path "$layout")) { throw "Layout '$($layoutname)' doesn't exist" }
         $__ = New-Item -ItemType Directory -Path "$($temp)\Layouts"
         Copy-Item -Path "$layout" -Recurse -Destination "$($temp)\Layouts"
-        Write-Host "Included the '$($layoutname)' layout"
+        if (!$Quiet) { Write-Host "Included the '$($layoutname)' layout" }
     }
 
     # Override output name
@@ -110,10 +115,10 @@ Name=$($RMSKIN.SkinName)
     $filename += ".rmskin"
 
     $archive = "$($temp)\skin.zip"
-    Write-Host "`nCreating .zip archive..."
+    if (!$Quiet) { Write-Host "`nCreating .zip archive..." }
     Compress-Archive -CompressionLevel Optimal -Path "$($temp)\*" -DestinationPath $archive
     Add-RMfooter -Target $archive
-    Write-Host "`nSkin package created!" -ForegroundColor Green
+    if (!$Quiet) { Write-Host "`nSkin package created!" -ForegroundColor Green }
 
     # Override output directory
     $dir = "$($env:USERPROFILE)\Desktop"
@@ -130,10 +135,11 @@ Name=$($RMSKIN.SkinName)
     $OutputPath = "$($dir)\$($filename)"
 
     Move-Item -Path "$($temp)\skin.rmskin" -Destination $OutputPath -Force
-
     Clear-Temp -Quiet
 
-    Write-Host "Final output at: " -NoNewline
-    Write-Host "'$($OutputPath)'" -ForegroundColor White
+    if (!$Quiet) {
+        Write-Host "Final output at: " -NoNewline
+        Write-Host "'$($OutputPath)'" -ForegroundColor White
+    }
 
 }
