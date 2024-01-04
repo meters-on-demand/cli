@@ -154,7 +154,7 @@ function Install-Silently {
         $Quiet
     )
 
-    Invoke-Bang "!Quit"
+    Invoke-Bang -Stop
 
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
@@ -174,7 +174,7 @@ function Install-Silently {
         Write-Host "Installed $($RootConfig)!" -ForegroundColor Green
     }
 
-    $SkinInfo | Get-LoadBang | Invoke-Bang -StartRainmeter
+    $SkinInfo | Get-LoadBang | Invoke-Bang -Start
 
 }
 
@@ -191,13 +191,14 @@ function Get-LoadBang {
 
     $Config = $MetersOnDemand.Config
     $Load = $Config.Load
-    $LoadPreference = $Config.LoadType
+    $LoadPreference = $Config.LoadPreference
+    $LoadEither = $Config.LoadEither
 
     if (!$Load) { 
         if (!$Quiet) { Write-Host "Skipping load" }
         return
     }
-    if ((!$SkinInfo.LoadType) -and (!$SkinInfo.Load)) { 
+    if ((!$SkinInfo.LoadType) -or (!$SkinInfo.Load)) { 
         if (!$Quiet) { Write-Host "No loadables found" }
         return
     }
@@ -210,7 +211,7 @@ function Get-LoadBang {
 
     function Load-Layout {
         # TODO: Make layout loading work
-        if (!$Quiet) { Write-Host "Can't load layout (not implemented)" }
+        Write-Warning "Layout loading is not implemented"
         # $StartBang = "[!LoadLayout `"$($SkinInfo.Load)`"]"
         return ""
     }
@@ -218,28 +219,11 @@ function Get-LoadBang {
     $AbleToLoadSkin = $SkinInfo.LoadType -like "skin"
     $AbleToLoadLayout = $SkinInfo.LoadType -like "layout"
 
-    Write-Host "$($SkinInfo.Load)"
-    Write-Host "$($SkinInfo.LoadType)"
-    Write-Host "LoadPreference: $LoadPreference"
-    Write-Host "AbleToLoadSkin: $AbleToLoadSkin"
-    Write-Host "AbleToLoadLayout: $AbleToLoadLayout"
-
-    if (($AbleToLoadLayout) -and ($LoadPreference -like "layout")) { return Load-Layout }
-    else {
-        Write-Host "No layout found"
-        if ($AbleToLoadSkin) {
-            if (Yes-No "Would you like to load the default skin?") { return Load-Skin }
-        }
-    }
     if (($AbleToLoadSkin) -and ($LoadPreference -like "skin")) { return Load-Skin }
-    else {
-        Write-Host "No default skin found"
-        if ($AbleToLoadLayout) {
-            if (Yes-No "Would you like to load the default layout?") { return Load-Layout }
-        }
-    }
+    if ($AbleToLoadLayout -and $LoadEither) { return Load-Layout }
+    if (($AbleToLoadLayout) -and ($LoadPreference -like "layout")) { return Load-Layout }
+    if ($AbleToLoadSkin -and $LoadEither) { return Load-Skin }
 
-    if (!$Quiet) { Write-Host "No loadbang" }
-    return
+    Write-Host "No loadbang (this should not print)"
 
 }

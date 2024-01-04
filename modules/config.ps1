@@ -1,8 +1,9 @@
 function New-Config {
     return [PSCustomObject]@{
-        AlwaysUpdate = $True
-        Load         = $True
-        LoadType     = "skin"
+        AlwaysUpdate   = $True
+        Load           = $True
+        LoadPreference = "skin"
+        LoadEither     = $False
     }
 }
 
