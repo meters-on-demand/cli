@@ -66,15 +66,16 @@ function Get-LatestPlugin {
 
 function Get-Plugins {
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position = 0)]
         [string]
         $RootConfig
     )
 
+    $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
     $RootConfigPath = "$($SkinPath)\$($RootConfig)"
 
-    $plugins = @{}
+    $plugins = [pscustomobject]@{}
 
     $files = Get-ChildItem -Path "$RootConfigPath" -Recurse -File -Include *.inc, *.ini
 
@@ -87,7 +88,7 @@ function Get-Plugins {
                 $plugin = "$($Matches[1])".ToLower()
                 $plugin = $plugin -replace "\.dll$", ""
                 $plugin = $plugin -replace "^plugins[\\\/]", ""
-                $plugins[$plugin] = $true
+                $plugins | Add-Member -MemberType NoteProperty -Name $plugin -Value $true -Force
             }
         }
     }
