@@ -244,7 +244,7 @@ function InstallMetersOnDemand {
 
         Write-Host "Copying script files from '$RootConfigPath' to '$InstallPath'"
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.FileName)" -Destination $InstallPath -Force
-        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.BatFileName)" -Destination $InstallPath -Force
+        Copy-Item -Path "$($RootConfigPath)\*" -Include "*.bat" -Destination $InstallPath -Force
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Modules)" -Recurse -Destination $InstallPath -Force
         Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Commands)" -Recurse -Destination $InstallPath -Force
         Copy-Item -Path "$($RootConfigPath)\cache.json" -Destination $InstallPath -Force

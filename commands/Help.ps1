@@ -71,7 +71,7 @@ function Help {
         [pscustomobject]@{
             Name        = "bang"
             Signature   = "[[-Bang] <bangs>] [-StartRainmeter | -Start] [-StopRainmeter | -Stop]"
-            Description = "runs bangs through `$RmApi or by commanding the executable directly`n if -Start or -Stop is present, bangs are run after or before starting or stopping Rainmeter"
+            Description = "runs bangs through `$RmApi or by commanding the executable directly`n if -Start or -Stop is present, bangs are run after or before starting or stopping Rainmeter`n you can also call bang directly without mond"
         },
         [pscustomobject]@{
             Name        = "open"
