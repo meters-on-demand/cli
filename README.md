@@ -55,6 +55,9 @@ Invoke-Pester -Output Detailed
   - [x] Look into using PowerShell modules to isolate $MetersOnDemand into module scope
   - Too hard and Microsoft ain't doin shit about it
 - [ ] Clean function signatures and the code base in general skull
+- [ ] Use ParameterSets and Aliases instead of a billion different variables and checking if they're set
+  - eg. `Alias("Bangs", "Bang")` instead of `if($Parameter -and !$Bang) { $Bang = $Parameter }`
+  - Read https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-7.4
 - [ ] Add `Set-Alias` into powershell profile to access MetersOnDemand.ps1 directly in PowerShell
   - Ask the user before doing this. Maybe use registry or something to store if the user has already been asked? Or the config file. 
 - [ ] Make `uninstall` and `restore` send bangs to Rainmeter

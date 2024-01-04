@@ -69,6 +69,11 @@ function Help {
             Wiki        = $initWiki
         },
         [pscustomobject]@{
+            Name        = "bang"
+            Signature   = "[[-Bang] <bangs>] [-StartRainmeter | -Start] [-StopRainmeter | -Stop]"
+            Description = "runs bangs through `$RmApi or by commanding the executable directly`n if -Start or -Stop is present, bangs are run after or before starting or stopping Rainmeter"
+        },
+        [pscustomobject]@{
             Name        = "open"
             Signature   = "$($skinSig)"
             Description = "Opens the specified skins #ROOTCONFIG# in your #CONFIGEDITOR#"

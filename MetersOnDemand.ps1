@@ -80,7 +80,19 @@ param (
     $Force,
     [Parameter()]
     [switch]
-    $Quiet
+    $Quiet,
+    [Parameter()]
+    [Alias("Bangs")]
+    [string]
+    $Bang,
+    [Parameter()]
+    [Alias("Start")]
+    [switch]
+    $StartRainmeter,
+    [Parameter()]
+    [Alias("Stop")]
+    [switch]
+    $StopRainmeter
 )
 
 # Globals
@@ -382,6 +394,17 @@ try {
                 return Write-ConfigOption $Parameter 
             }
             Write-FormattedConfig
+            break
+        }
+        "bang" {
+            if ($Parameter -and !$Bang) { $Bang = $Parameter }
+            if (($StartRainmeter -or $StopRainmeter) -and !$Bang) {
+                return Invoke-Bang -StartRainmeter:$StartRainmeter -StopRainmeter:$StopRainmeter -Quiet:$Quiet
+            }
+            if ($StartRainmeter -or $StopRainmeter -or $Bang) { 
+                return Invoke-Bang -Bang $Bang -StartRainmeter:$StartRainmeter -StopRainmeter:$StopRainmeter -Quiet:$Quiet
+            }
+            else { throw "Specify either '[-Bang] <bangs>', '-StartRainmeter' or '-StopRainmeter'" }
             break
         }
         Default {
