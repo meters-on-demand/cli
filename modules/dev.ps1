@@ -149,7 +149,7 @@ function Open-Skin {
 }
 
 function Refresh {
-    Invoke-Bang "[!ActivateConfig `"$($MetersOnDemand.Installer.SkinName)`"]" -Start
+    Invoke-Bang "[!ActivateConfig `"$($MetersOnDemand.SkinName)`"]" -Start
 }
 
 function New-Lock {

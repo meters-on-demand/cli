@@ -20,7 +20,7 @@ function Restore {
     $restoreTarget = "$($skinPath)\$($skinName)"
     if (-not (Test-Path -Path "$($restorePath)")) {
         if ($Force) { return }
-        throw "Cannot restore: $($FullName) was not found in $($MetersOnDemand.Removed)."
+        throw "Cannot restore: $($FullName) was not found in @Backup."
     }
     if (Test-Path -Path "$($restoreTarget)") {
         if ($Force) {

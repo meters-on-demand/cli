@@ -41,7 +41,7 @@ function Help {
         [pscustomobject]@{
             Name        = "restore"
             Signature   = "$skinSig $forceSig"
-            Description = "restores an upgraded or uninstalled skin from $($MetersOnDemand.Removed)"
+            Description = "restores an upgraded or uninstalled skin from @Backup"
         },
         [pscustomobject]@{
             Name        = "version"

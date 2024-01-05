@@ -158,13 +158,14 @@ function Install-Silently {
 
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
+    $TempDirectory = $MetersOnDemand.TempDirectory
 
     $SkinInfo = Get-SkinInfo -Path $Path -RootConfig $RootConfig
     if ($SkinInfo.SkinName) {
         $RootConfig = $SkinInfo.SkinName
     }
     
-    if (!$Path) { $Path = "$($SkinPath)\$($MetersOnDemand.TempDirectory)" }
+    if (!$Path) { $Path = "$($TempDirectory)" }
     $Destination = "$($SkinPath)\$($RootConfig)"
     if (Test-Path -Path $Destination) { Remove-Item -Path $Destination -Force -Recurse }
     Copy-Item -Recurse -Path "$Path" -Destination $Destination

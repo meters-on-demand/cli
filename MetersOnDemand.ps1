@@ -85,66 +85,56 @@ param (
 
 # Globals
 $MetersOnDemand = [PSCustomObject]@{ 
-    Version        = "v1.3.0"
-    Directory      = "#Mond"
-    FileName       = "MetersOnDemand.ps1"
-    BatFileName    = "mond.bat"
-    TempDirectory  = "#Mond\temp"
-    FullName       = "meters-on-demand/cli"
-    Wiki           = "https://docs.rainmeter.skin"
-    Modules        = "modules"
-    Commands       = "commands"
-    Removed        = "@Backup"
-    Installer      = [PSCustomObject]@{
-        SkinName = "Meters on Demand"
-    }
-    Api            = [PSCustomObject]@{
+    Version       = "v1.3.0"
+    Directory     = "#Mond"
+    FileName      = "MetersOnDemand.ps1"
+    FullName      = "meters-on-demand/cli"
+    SkinName      = "Meters on Demand"
+    Wiki          = "https://docs.rainmeter.skin"
+    Modules       = "modules"
+    Commands      = "commands"
+    Api           = [PSCustomObject]@{
         Url       = "https://api.rainmeter.skin"
         Endpoints = [PSCustomObject]@{
             Skins = "https://api.rainmeter.skin/skins"
         }
         Wiki      = "https://docs.rainmeter.skin/api"
     }
-    Cache          = $False 
-    ScriptRoot     = ""
-    PreInstallRoot = ""
-    CacheFile      = ""
-    ConfigFile     = ""
-    LogFile        = ""
-    SkinFile       = ""
-    Config         = [PSCustomObject]@{
-        AlwaysUpdate = $False
-    }
+    Cache         = [PSCustomObject]@{}
+    Config        = [PSCustomObject]@{}
+    ScriptRoot    = ""
+    TempDirectory = "temp"
+    CacheFile     = "cache.json"
+    ConfigFile    = "config.json"
+    LogFile       = "mond.log"
+    SkinFile      = "skin.rmskin"
 }
 
 # If running under PSRM in Rainmeter
 if ($RmApi) {
-    # Post install location
-    $MetersOnDemand.ScriptRoot = ("$($RmApi.VariableStr("SKINSPATH"))" -replace "\\$", "") + "\$($MetersOnDemand.Directory)"
-    # Pre install location
-    $MetersOnDemand.PreInstallRoot = "$($RmApi.VariableStr("ROOTCONFIGPATH"))" -replace "\\$"
+    $MetersOnDemand.ScriptRoot = "$($RmApi.VariableStr("SKINSPATH"))$($MetersOnDemand.Directory)"
 }
-else { 
+else {
     if (!$PSScriptRoot) {
-        throw "`$PSScriptRoot is not set??? Where am I?? Where is `$SkinPath\$($MetersOnDemand.Directory)???" 
+        throw "`$PSScriptRoot is not set, this should not happen. Please set `$PSScriptRoot = <path to #SKINSPATH##Mond> before calling $($MetersOnDemand.FileName)"
     }
     $MetersOnDemand.ScriptRoot = $PSScriptRoot
-    $MetersOnDemand.PreInstallRoot = $PSScriptRoot
 }
 
 # Files
-$MetersOnDemand.CacheFile = "$($MetersOnDemand.PreInstallRoot)\cache.json"
-$MetersOnDemand.ConfigFile = "$($MetersOnDemand.PreInstallRoot)\config.json"
-$MetersOnDemand.LogFile = "$($MetersOnDemand.PreInstallRoot)\mond.log"
-$MetersOnDemand.SkinFile = "$($MetersOnDemand.PreInstallRoot)\skin.rmskin"
+$MetersOnDemand.TempDirectory = "$($MetersOnDemand.ScriptRoot)\$($MetersOnDemand.TempDirectory)"
+$MetersOnDemand.CacheFile = "$($MetersOnDemand.ScriptRoot)\$($MetersOnDemand.CacheFile)"
+$MetersOnDemand.ConfigFile = "$($MetersOnDemand.ScriptRoot)\$($MetersOnDemand.ConfigFile)"
+$MetersOnDemand.LogFile = "$($MetersOnDemand.ScriptRoot)\$($MetersOnDemand.LogFile)"
+$MetersOnDemand.SkinFile = "$($MetersOnDemand.ScriptRoot)\$($MetersOnDemand.SkinFile)"
 
 # Load modules
-Get-ChildItem "$($MetersOnDemand.PreInstallRoot)\$($MetersOnDemand.Modules)\*" | ForEach-Object {
+Get-ChildItem "$($MetersOnDemand.ScriptRoot)\$($MetersOnDemand.Modules)\*" | ForEach-Object {
     . "$($_)"
 }
 
 # Load commands
-Get-ChildItem "$($MetersOnDemand.PreInstallRoot)\$($MetersOnDemand.Commands)\*" | ForEach-Object {
+Get-ChildItem "$($MetersOnDemand.ScriptRoot)\$($MetersOnDemand.Commands)\*" | ForEach-Object {
     . "$($_)"
 }
 
@@ -175,8 +165,17 @@ function InstallMetersOnDemand {
         $ProgramPath = "$($RainmeterDirectory)\Rainmeter.exe"
 
         Write-Host "Installing Meters on Demand..."
-        $RootConfigPath = $MetersOnDemand.PreInstallRoot
+        $RootConfigPath = "$($SkinPath)\$($MetersOnDemand.SkinName)"
         $InstallPath = "$SkinPath\$($MetersOnDemand.Directory)"
+
+        # Load modules from the root path
+        Get-ChildItem "$($RootConfigPath)\$($MetersOnDemand.Modules)\*" | ForEach-Object {
+            . "$($_)"
+        }
+        # Load commands from the root path
+        Get-ChildItem "$($RootConfigPath)\$($MetersOnDemand.Commands)\*" | ForEach-Object {
+            . "$($_)"
+        }
 
         $UserConfig = "$($InstallPath)\config.json"
         $TempConfig = "$($RootConfigPath)\config.json"
@@ -187,13 +186,13 @@ function InstallMetersOnDemand {
         }
         Out-Json -Object $Config -Path $TempConfig
 
-        # Clear the #Mond directory
+        # Clear the InstallPath
         Remove-Item -Path "$($InstallPath)" -Recurse -Force
 
         # Write debug info
         Write-Host "/////////////////"
-        Write-Host "ScriptRoot: $($MetersOnDemand.ScriptRoot)"
         Write-Host "RootConfigPath: $($RootConfigPath)"
+        Write-Host "InstallPath: $($InstallPath)"
         Write-Host "SkinPath: $($SkinPath)"
         Write-Host "SettingsPath: $($SettingsPath)"
         Write-Host "ProgramPath: $($ProgramPath)"
@@ -212,7 +211,10 @@ function InstallMetersOnDemand {
 
         Write-Host "Copying script files from '$RootConfigPath' to '$InstallPath'"
         New-Item -ItemType Directory -Path "$($InstallPath)"
-        Get-ChildItem -Path "$($RootConfigPath)" -Directory -Exclude '@Resources', '.vscode' | Copy-Item -Destination "$($InstallPath)" -Recurse -Force
+        # Copy directories
+        Copy-Item -Path "$($RootConfigPath)\commands" -Destination "$($InstallPath)" -Recurse -Force
+        Copy-Item -Path "$($RootConfigPath)\modules" -Destination "$($InstallPath)" -Recurse -Force
+        # Copy loose files
         Get-ChildItem -Path "$($RootConfigPath)\*" -File -Include "*.ps1", "*.bat", "*.json" | Copy-Item -Destination "$($InstallPath)"
 
         Write-Host "Adding '$InstallPath' to PATH"

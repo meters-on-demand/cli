@@ -30,7 +30,7 @@ function Get-Request {
 }
 
 function RemovedDirectory {
-    $removedDirectory = "$($Cache.SkinPath)\$($MetersOnDemand.Removed)"
+    $removedDirectory = "$($Cache.SkinPath)\@Backup"
     if (-not(Test-Path -Path $removedDirectory)) {
         New-Item -Path $removedDirectory -ItemType Directory
     }
@@ -76,9 +76,7 @@ function Clear-Temp {
         [switch]
         $Quiet
     )
-    $Cache = $MetersOnDemand.Cache
-    $SkinPath = $Cache.SkinPath
-    $temp = "$($SkinPath)\$($MetersOnDemand.TempDirectory)"
+    $temp = $MetersOnDemand.TempDirectory
     if (!(Test-Path -Path "$temp")) {
         $__ = New-Item -ItemType Directory -Path $temp 
     }
