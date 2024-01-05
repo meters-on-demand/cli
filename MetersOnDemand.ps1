@@ -240,7 +240,7 @@ if ($RmApi) {
         catch {
             $RmApi.LogError("$($_)")
             $_ | Out-File -FilePath $MetersOnDemand.LogFile -Append
-            Invoke-Bang "[`"$($MetersOnDemand.LogFile)`"]"
+            $RmApi.Bang("[`"$($MetersOnDemand.LogFile)`"]")
         }
     }
     return
