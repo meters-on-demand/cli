@@ -20,15 +20,6 @@ param (
     [string]
     $Property,
     [Parameter()]
-    [string]
-    $SkinPath,
-    [Parameter()]
-    [string]
-    $ProgramPath,
-    [Parameter()]
-    [string]
-    $ConfigEditor,
-    [Parameter()]
     [ValidateSet("skin", "layout")]
     [string]
     $LoadType,
@@ -50,9 +41,6 @@ param (
     [Parameter()]
     [string]
     $HeaderImage,
-    [Parameter()]
-    [string]
-    $SettingsPath,
     [Parameter()]
     [Alias("Version", "v")]
     [string]
@@ -145,10 +133,10 @@ else {
 }
 
 # Files
-$MetersOnDemand.CacheFile = "$($MetersOnDemand.ScriptRoot)\cache.json"
-$MetersOnDemand.ConfigFile = "$($MetersOnDemand.ScriptRoot)\config.json"
-$MetersOnDemand.LogFile = "$($MetersOnDemand.ScriptRoot)\mond.log"
-$MetersOnDemand.SkinFile = "$($MetersOnDemand.ScriptRoot)\skin.rmskin"
+$MetersOnDemand.CacheFile = "$($MetersOnDemand.PreInstallRoot)\cache.json"
+$MetersOnDemand.ConfigFile = "$($MetersOnDemand.PreInstallRoot)\config.json"
+$MetersOnDemand.LogFile = "$($MetersOnDemand.PreInstallRoot)\mond.log"
+$MetersOnDemand.SkinFile = "$($MetersOnDemand.PreInstallRoot)\skin.rmskin"
 
 # Load modules
 Get-ChildItem "$($MetersOnDemand.PreInstallRoot)\$($MetersOnDemand.Modules)\*" | ForEach-Object {
@@ -178,49 +166,29 @@ function Update {
 
 function InstallMetersOnDemand {
     try {
-        # When not running under PSRM
-        if (!$RmApi) {
-            $MissingParameters = $False   
-            if (!$SkinPath) { 
-                Write-Error "Please provide the path to the Skins folder in the -SkinPath parameter." 
-                $MissingParameters = $True
-            }
-            if (!(Test-Path $SkinPath)) { 
-                Write-Error "SkinPath '$($SkinPath)' doesn't exist." 
-                $MissingParameters = $True
-            }
-            if (!$SettingsPath) { 
-                Write-Error "Please provide the path to Rainmeter.ini in the -SettingsPath parameter." 
-                $MissingParameters = $True
-            }
-            if (!$ProgramPath) { 
-                Write-Error "Please provide the path to Rainmeter.exe in the -ProgramPath parameter." 
-                $MissingParameters = $True
-            }
-            if (!$ConfigEditor) { 
-                Write-Error "Please provide the path to the executable of your desired ConfigEditor in the -ConfigEditor parameter."
-                Write-Error "For example: -ConfigEditor `"C:\Users\Reseptivaras\AppData\Local\Programs\Microsoft VS Code\Code.exe`"" 
-                $MissingParameters = $True
-            }
-            if ($MissingParameters) {
-                throw "One or multiple required parameters are missing!"
-            }
-            $RainmeterDirectory = Split-Path -Path $ProgramPath -Parent
-        }
-        else {
-            $SkinPath = "$($RmApi.VariableStr("SKINSPATH"))" -replace "\\$", ""
-            $SettingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))" -replace "\\$", ""
-            $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))" -replace "\\$", ""
-            $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))" -replace "\\$", ""
-            $ProgramPath = "$($RainmeterDirectory)\Rainmeter.exe"
-        }
+        if (!$RmApi) { throw "Meters on Demand can only be installed under PSRM" }
+
+        $SkinPath = "$($RmApi.VariableStr("SKINSPATH"))" -replace "\\$", ""
+        $SettingsPath = "$($RmApi.VariableStr("SETTINGSPATH"))" -replace "\\$", ""
+        $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))" -replace "\\$", ""
+        $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))" -replace "\\$", ""
+        $ProgramPath = "$($RainmeterDirectory)\Rainmeter.exe"
 
         Write-Host "Installing Meters on Demand..."
         $RootConfigPath = $MetersOnDemand.PreInstallRoot
         $InstallPath = "$SkinPath\$($MetersOnDemand.Directory)"
-        if (!(Test-Path -Path $InstallPath)) {
-            New-Item -ItemType Directory -Path $InstallPath 
+
+        $UserConfig = "$($InstallPath)\config.json"
+        $TempConfig = "$($RootConfigPath)\config.json"
+        $Config = New-Config
+        if (Test-Path $UserConfig) {
+            Write-Host "Merging existing user settings"
+            $Config = Read-Json -Path $UserConfig | Merge-Object -Source $Config
         }
+        Out-Json -Object $Config -Path $TempConfig
+
+        # Clear the #Mond directory
+        Remove-Item -Path "$($InstallPath)" -Recurse -Force
 
         # Write debug info
         Write-Host "/////////////////"
@@ -234,29 +202,18 @@ function InstallMetersOnDemand {
         Write-Host "/////////////////"
 
         Write-Host "Creating the cache"
-        New-Cache -NoteProperties ([PSCustomObject]@{
+        New-Cache | Merge-Object -Override -Source ([PSCustomObject]@{
                 SkinPath           = $SkinPath
                 SettingsPath       = $SettingsPath
                 ProgramPath        = $ProgramPath
                 RainmeterDirectory = $RainmeterDirectory
                 ConfigEditor       = $ConfigEditor
-            }) | Add-SkinLists | Save-Cache -Quiet
+            }) | Add-SkinLists | Save-Cache -Path "$($RootConfigPath)\cache.json" -Quiet
 
         Write-Host "Copying script files from '$RootConfigPath' to '$InstallPath'"
-        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.FileName)" -Destination $InstallPath -Force
-        Copy-Item -Path "$($RootConfigPath)\*" -Include "*.bat" -Destination $InstallPath -Force
-        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Modules)" -Recurse -Destination $InstallPath -Force
-        Copy-Item -Path "$($RootConfigPath)\$($MetersOnDemand.Commands)" -Recurse -Destination $InstallPath -Force
-        Copy-Item -Path "$($RootConfigPath)\cache.json" -Destination $InstallPath -Force
-        
-        $UserConfig = "$($InstallPath)\config.json"
-        Write-Host "Creating default configuration file"
-        $Config = New-Config
-        if (Test-Path $UserConfig) {
-            Write-Host "Merging existing user settings"
-            $Config = Read-Json -Path $UserConfig | Merge-Object -Source $Config
-        }
-        Out-Json -Object $Config -Path $UserConfig
+        New-Item -ItemType Directory -Path "$($InstallPath)"
+        Get-ChildItem -Path "$($RootConfigPath)" -Directory -Exclude '@Resources', '.vscode' | Copy-Item -Destination "$($InstallPath)" -Recurse -Force
+        Get-ChildItem -Path "$($RootConfigPath)\*" -File -Include "*.ps1", "*.bat", "*.json" | Copy-Item -Destination "$($InstallPath)"
 
         Write-Host "Adding '$InstallPath' to PATH"
         Set-PathVariable -AddPath $InstallPath

@@ -1,22 +1,9 @@
 function New-Cache {
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [psobject]
-        $NoteProperties
-    )
-
-    $Cache = [PSCustomObject]@{
+    return [PSCustomObject]@{
         Skins      = [pscustomobject]@{ };
         Installed  = [pscustomobject]@{ };
         Updateable = [pscustomobject]@{ };
     }
-
-    foreach ($property in (ToIteratable $NoteProperties)) {
-        $Cache | Add-Member -MemberType NoteProperty -Name "$($property.name)" -Value "$($property.value)" -Force
-    }
-
-    return $Cache
 }
 
 function Add-SkinLists {
@@ -190,9 +177,13 @@ function Save-Cache {
         [PSCustomObject]
         $Cache,
         [Parameter()]
+        [string]
+        $Path,
+        [Parameter()]
         [switch]
         $Quiet
     )
     $MetersOnDemand.Cache = $Cache
-    $Cache | Out-Json -Path $MetersOnDemand.CacheFile -Quiet:$Quiet
+    if (!$Path) { $Path = $MetersOnDemand.CacheFile }
+    $Cache | Out-Json -Path $Path -Quiet:$Quiet
 }
