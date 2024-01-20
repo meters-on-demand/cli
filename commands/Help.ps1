@@ -20,8 +20,8 @@ function Help {
         }, 
         [pscustomobject]@{
             Name        = "list"
-            Signature   = ""
-            Description = "lists installed skins"
+            Signature   = "[-Unmanaged]"
+            Description = "lists installed skins. use -Unmanaged to list manually installed skins"
         }, 
         [pscustomobject]@{
             Name        = "search"

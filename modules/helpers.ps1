@@ -6,16 +6,21 @@ function Get-SkinObject {
         $FullName,
         [Parameter(Mandatory, ValueFromPipeline, Position = 0, ParameterSetName = "RootConfig")]
         [string]
-        $RootConfig
+        $RootConfig,
+        [Parameter()]
+        [switch]
+        $Quiet
     )
+    $Name = if ($FullName) { $FullName } else { $RootConfig } 
     $Cache = $MetersOnDemand.Cache
+    $Skin = $False
     if ($FullName) {
         $Skin = $Cache.SkinsByFullName.$FullName
     }
     else {
         $Skin = $Cache.SkinsBySkinName.$RootConfig
     }
-    if (-not $Skin) { throw "No skin named $($FullName) found" }
+    if ((!$Quiet) -and (!$Skin)) { throw "Couldn't find $($Name)" } 
     return $Skin
 }
 
@@ -90,14 +95,16 @@ function Get-SkinInfo {
         [Parameter(Mandatory, Position = 0, ValueFromPipeline, ParameterSetName = "RootConfig")]
         [string]
         $RootConfig,
+        [Parameter(Mandatory, ParameterSetName = "FullName")]
+        [string]
+        $FullName,
         [Parameter(Mandatory, ParameterSetName = "Path")]
         [Parameter(ParameterSetName = "RootConfig")]
         [string]
         $Path
     )
 
-    $Cache = $MetersOnDemand.Cache
-    $SkinPath = $Cache.SkinPath
+    $Name = if ($RootConfig) { $RootConfig } else { $FullName }
 
     $Overrides = @{
         Author           = "$Author"
@@ -125,14 +132,19 @@ function Get-SkinInfo {
         MergeSkins       = $null
     }
 
-    if ($Path) {
+
+    if ($FullName) {
+        $RootConfig = (Get-SkinObject -FullName $FullName).skin_name
+    }
+    elseif ($Path) {
         $mondinc = Get-MondInc -Path $Path
-        if (!$RootConfig) { $RootConfig = (Split-Path -Path $Path -Leaf) }
+        $RootConfig = (Split-Path -Path $Path -Leaf) 
     }
-    else {
-        $mondinc = Get-MondInc -RootConfig $RootConfig
-    }
-    
+
+    if (!$RootConfig) { throw "Couldn't find info for $($Name)" }
+
+    if (!$Path) { $mondinc = Get-MondInc -RootConfig $RootConfig }
+
     if ($mondinc) {
         Get-Content -Path $mondinc | ForEach-Object {
             $s = $_ -split "="
@@ -274,7 +286,7 @@ function Format-SkinList {
 
     $Skins | Sort-Object -Property "full_name" | ForEach-Object {
         Write-Host $_.full_name -ForegroundColor Blue -NoNewline
-        $current = $_.latest_release.tag_name
+        $current = $_.version
         $versionColor = "Gray"
         $installed = $Cache.Installed.($_.full_name)
         $updateable = $Cache.Updateable.($_.full_name)

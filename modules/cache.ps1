@@ -129,15 +129,24 @@ function Get-InstalledSkins {
     $SkinsBySkinName = Get-SkinsBySkinName -Skins $Skins
     Get-ChildItem -Path "$($SkinPath)\*" -Directory | ForEach-Object {
         $RootConfig = $_.BaseName
+
+        if (@("@", "#").Contains([string]$RootConfig[0])) { return }
+
+        $SkinInfo = Get-SkinInfo -RootConfig $RootConfig
         $Skin = $SkinsBySkinName.$RootConfig
-        if (!$Skin) { return }
+        if ((!$Skin) -and (!$SkinInfo)) { return }
+
         $full_name = $Skin.full_name
-        $existing = $Installed.$full_name
-        $latest = $Skin.latest_release.tag_name
+        if (!$full_name) { $full_name = $RootConfig }
+        $existing = $SkinInfo.Version
+        if (!$existing) { $existing = $Installed.$full_name }
+
         if ($existing) {
             $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $existing
         }
-        else { 
+        else {
+            $latest = $Skin.latest_release.tag_name
+            if (!$latest) { $latest = "unknown" }
             $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
         }
     }
@@ -154,7 +163,6 @@ function Get-UpdateableSkins {
     )
 
     $Updateable = [PSCustomObject]@{ }
-    $Skins = $Cache.Skins
     $SkinsByFullName = $Cache.SkinsByFullName
     $InstalledSkins = $Cache.Installed | ToIteratable
 
@@ -162,8 +170,9 @@ function Get-UpdateableSkins {
         $FullName = $entry.Name
         $installed = $entry.Value
         $latest = $SkinsByFullName.$FullName.version
+        if (!$latest) { continue }
         if ($installed -ne $latest) { 
-            $Updateable | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
+            $Updateable | Add-Member -MemberType NoteProperty -Name "$FullName" -Value $latest
         }
     }
 

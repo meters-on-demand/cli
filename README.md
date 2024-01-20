@@ -61,7 +61,7 @@ Invoke-Pester -Output Detailed
 - [ ] Add `Set-Alias` into powershell profile to access MetersOnDemand.ps1 directly in PowerShell
   - Ask the user before doing this. Maybe use registry or something to store if the user has already been asked? Or the config file. 
 - [ ] Make `uninstall` and `restore` send bangs to Rainmeter
-- [ ] Use Version from mond.inc for skins that have it in `Get-InstalledSkins`
+- [x] Use Version from mond.inc for skins that have it in `Get-InstalledSkins`
 - [ ] Work on `mond plugin [-Plugin] <plugin> [-Version <version>]` and the [plugin repository](https://github.com/meters-on-demand/plugins)
   - `mond plugin` is needed for silent installs and installs from git sources in general
   - Using a repository is kinda sussy since it's just .dll files. At least it's public but still 
@@ -74,7 +74,7 @@ Invoke-Pester -Output Detailed
   - [ ] Use `mond plugin` to install plugins for git cloned skins
   - [ ] Make `mond install` git clone by default
 - [x] Investigate getting rid of `mond update` it's annoying and most of the time commands that need it will auto update anyway(?)
-  - For example, `mond install <full_name>` could internally `mond update` and try again before failing\
+  - For example, `mond install <full_name>` could internally `mond update` and try again before failing
   - Added `mond config AlwaysUpdate 1` for this
   - Document `mond config`
 - [x] Use PSRM in Installer.ini to show status messages while installing (?)

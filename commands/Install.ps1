@@ -62,9 +62,12 @@ function Test-Installed {
 
 function Write-InstallCache {
     param (
-        [Parameter(Mandatory, Position = 0)]
+        [Parameter(Mandatory, Position = 0, ParameterSetName = "FullName")]
         [string]
         $FullName,
+        [Parameter(Mandatory, Position = 0, ParameterSetName = "RootConfig")]
+        [string]
+        $RootConfig,
         [Parameter()]
         [string]
         $Version
@@ -73,9 +76,20 @@ function Write-InstallCache {
     $Cache = $MetersOnDemand.Cache
     $Installed = $Cache.Installed
 
-    if (!$Version) {
+    if ($RootConfig) {
+        $Skin = Get-SkinInfo -RootConfig $RootConfig
+    }
+    if ($FullName) {
         $Skin = Get-SkinObject -FullName $FullName
-        $Version = $Skin.latest_release.tag_name
+    }
+
+    if (!$Version) {
+        $Version = $Skin.Version
+    }
+
+    if (!$Version) {
+        Write-Host "Couldn't find version information for $(if($RootConfig) {$RootConfig} else {$FullName}), installation not recorded"
+        return
     }
 
     if ($installedVersion -ne $Version) {
@@ -112,7 +126,6 @@ function Install-FromGit {
     $temp = Clear-Temp
     $origin = $pwd
     Set-Location -Path "$($temp)"
-    
 
     try {
         Test-Installed -FullName $FullName -Force:$Force
@@ -175,6 +188,8 @@ function Install-Silently {
         Write-Host "Installed $($RootConfig)!" -ForegroundColor Green
     }
 
+    Write-InstallCache -RootConfig $RootConfig
+
     $SkinInfo | Get-LoadBang | Invoke-Bang -Start
 
 }
@@ -195,11 +210,11 @@ function Get-LoadBang {
     $LoadPreference = $Config.LoadPreference
     $LoadEither = $Config.LoadEither
 
-    if (!$Load) { 
+    if (!$Load) {
         if (!$Quiet) { Write-Host "Skipping load" }
         return
     }
-    if ((!$SkinInfo.LoadType) -or (!$SkinInfo.Load)) { 
+    if ((!$SkinInfo.LoadType) -or (!$SkinInfo.Load)) {
         if (!$Quiet) { Write-Host "No loadables found" }
         return
     }

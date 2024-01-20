@@ -80,7 +80,10 @@ param (
     [Parameter()]
     [Alias("Stop")]
     [switch]
-    $StopRainmeter
+    $StopRainmeter,
+    [Parameter()]
+    [switch]
+    $Unmanaged
 )
 
 # Globals
@@ -287,11 +290,18 @@ try {
         }
         "list" {
             $Skins = @()
+            $Unknown = @()
             (ToIteratable -Object $MetersOnDemand.Cache.Installed) | ForEach-Object {
-                $Skins += Get-SkinObject -FullName $_.name
+                $Skin = Get-SkinObject -FullName $_.name -Quiet
+                if ($Skin) { $Skins += Get-SkinObject -FullName $_.name -Quiet }
+                else { $Unknown += @{full_name = $_.Name; version = $_.value } } 
             }
             Format-SkinList -Skins $Skins
-            break
+            if (!$Unmanaged) { break }
+            Write-Host "Unmanaged skins: " -BackgroundColor Yellow -NoNewline
+            Write-Host ""
+            Format-SkinList -Skins $Unknown
+            break 
         }
         "upgrade" {
             if ($Skin) { $Parameter = $Skin }

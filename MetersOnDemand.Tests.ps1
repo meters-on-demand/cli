@@ -35,6 +35,36 @@ Describe "Cached skins" {
     }
 }
 
+Describe "mond.inc" {
+    BeforeAll {
+        $SkinPath = ($MetersOnDemand.Cache.SkinPath)
+        $SkinName = "#MondTest"
+        $SkinVersion = "v1.0.0"
+        $TestSkinPath = "$($SkinPath)\$($SkinName)"
+        New-Item -Path $TestSkinPath -ItemType Directory
+        "[mond]`nVersion=$($SkinVersion)`nSkinName=$($SkinName)" | Out-File -FilePath "$($TestSkinPath)\mond.inc"
+        Get-Cache | Add-SkinLists | Save-Cache -Quiet
+    }
+    It "Reads the SkinName from mond.inc" {
+        $SkinName = "#MondTest"
+        $SkinInfo = Get-SkinInfo -RootConfig $SkinName
+        $SkinInfo.SkinName | Should -Be $SkinName
+    }
+    It "Reads the version from mond.inc" {
+        $SkinName = "#MondTest"
+        $SkinVersion = "v1.0.0"
+        $SkinInfo = Get-SkinInfo -RootConfig $SkinName
+        $SkinInfo.Version | Should -Be $SkinVersion
+    }
+    AfterAll {
+        $SkinPath = ($MetersOnDemand.Cache.SkinPath)
+        $SkinName = "#MondTest"
+        $TestSkinPath = "$($SkinPath)\$($SkinName)"
+        Remove-Item -Path $TestSkinPath -Recurse -Force
+        Get-Cache | Add-SkinLists | Save-Cache -Quiet
+    }
+}
+
 Describe "Search" {
     It "Finds skins" {
         Search -Query "reisir" -Quiet | Should -BeOfType pscustomobject
