@@ -132,7 +132,6 @@ function Get-SkinInfo {
         MergeSkins       = $null
     }
 
-
     if ($FullName) {
         $RootConfig = (Get-SkinObject -FullName $FullName).skin_name
     }

@@ -288,6 +288,14 @@ try {
             Install -FullName $Parameter -Force:$Force -FirstMatch
             break
         }
+        "info" {
+            if ($Skin) { $Parameter = $Skin }
+            if (-not $Parameter) {
+                throw "Install requires the named parameter -Skin (Position = 1)"
+            }
+            Info -Name $Parameter
+            break
+        }
         "list" {
             $Skins = @()
             $Unknown = @()
