@@ -184,10 +184,6 @@ function New-Lock {
 }
 
 function Assert-RootConfig {
-    if ($Parameter -and !$Skin) {
-        $Skin = $Parameter
-    }
-
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
 
