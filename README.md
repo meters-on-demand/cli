@@ -74,7 +74,7 @@ Invoke-Pester -Output Detailed
   - [ ] Use `mond plugin` to install plugins for git cloned skins
   - [ ] Make `mond install` git clone by default
 - [x] Investigate getting rid of `mond update` it's annoying and most of the time commands that need it will auto update anyway(?)
-  - For example, `mond install <full_name>` could internally `mond update` and try again before failing
+  - For example, `mond install <fullName>` could internally `mond update` and try again before failing
   - Added `mond config AlwaysUpdate 1` for this
   - Document `mond config`
 - [x] Use PSRM in Installer.ini to show status messages while installing (?)

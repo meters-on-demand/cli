@@ -21,7 +21,7 @@ function Search {
     $Skins = $Cache.Skins
 
     if (!$Query) { $Query = ".*" }
-    if (!$Property) { $Property = "full_name" }
+    if (!$Property) { $Property = "fullName" }
     if (!$Quiet) { Write-Host "Searching for `"$Query`"" }
 
     $Results = @()

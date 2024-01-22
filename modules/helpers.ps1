@@ -133,7 +133,7 @@ function Get-SkinInfo {
     }
 
     if ($FullName) {
-        $RootConfig = (Get-SkinObject -FullName $FullName).skin_name
+        $RootConfig = (Get-SkinObject -FullName $FullName).skinname
     }
     elseif ($Path) {
         $mondinc = Get-MondInc -Path $Path
@@ -283,12 +283,12 @@ function Format-SkinList {
         $Description
     )
 
-    $Skins | Sort-Object -Property "full_name" | ForEach-Object {
-        Write-Host $_.full_name -ForegroundColor Blue -NoNewline
+    $Skins | Sort-Object -Property "fullName" | ForEach-Object {
+        Write-Host $_.fullName -ForegroundColor Blue -NoNewline
         $current = $_.version
         $versionColor = "Gray"
-        $installed = $Cache.Installed.($_.full_name)
-        $updateable = $Cache.Updateable.($_.full_name)
+        $installed = $Cache.Installed.($_.fullName)
+        $updateable = $Cache.Updateable.($_.fullName)
         if ($installed) {
             $current = $installed
             $versionColor = "Green"
@@ -316,10 +316,10 @@ function Download {
     $Skin = Get-SkinObject $FullName
 
     if (!$Quiet) {
-        Write-Host "Downloading $($Skin.full_name)"
+        Write-Host "Downloading $($Skin.fullName)"
     }
 
-    Invoke-WebRequest -Uri $Skin.latest_release.browser_download_url -OutFile $MetersOnDemand.SkinFile
+    Invoke-WebRequest -Uri $Skin.latestRelease.uri -OutFile $MetersOnDemand.SkinFile
 
     return $MetersOnDemand.SkinFile
 }

@@ -83,7 +83,10 @@ param (
     $StopRainmeter,
     [Parameter()]
     [switch]
-    $Unmanaged
+    $Unmanaged,
+    [Parameter()]
+    [switch]
+    $Raw
 )
 
 # Globals
@@ -99,7 +102,7 @@ $MetersOnDemand = [PSCustomObject]@{
     Api           = [PSCustomObject]@{
         Url       = "https://api.rainmeter.skin"
         Endpoints = [PSCustomObject]@{
-            Skins = "https://api.rainmeter.skin/skins"
+            Skins = "http://localhost:8000/v1/skins"
         }
         Wiki      = "https://docs.rainmeter.skin/api"
     }
@@ -291,9 +294,9 @@ try {
         "info" {
             if ($Skin) { $Parameter = $Skin }
             if (-not $Parameter) {
-                throw "Install requires the named parameter -Skin (Position = 1)"
+                throw "Info requires the named parameter -Skin (Position = 1)"
             }
-            Info -Name $Parameter
+            Info -Name $Parameter -Print:(!$Raw)
             break
         }
         "list" {
@@ -302,7 +305,7 @@ try {
             (ToIteratable -Object $MetersOnDemand.Cache.Installed) | ForEach-Object {
                 $Skin = Get-SkinObject -FullName $_.name -Quiet
                 if ($Skin) { $Skins += Get-SkinObject -FullName $_.name -Quiet }
-                else { $Unknown += @{full_name = $_.Name; version = $_.value } } 
+                else { $Unknown += @{fullName = $_.Name; version = $_.value } } 
             }
             Format-SkinList -Skins $Skins
             if (!$Unmanaged) { break }

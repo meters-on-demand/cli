@@ -26,11 +26,11 @@ Describe "Cached skins" {
     Context "Get-SkinObject" {
         It "Gets the 'meters-on-demand/cli' skin object" {
             $me = Get-SkinObject "meters-on-demand/cli"
-            $me.skin_name | Should -Be "Meters on Demand"
+            $me.skinName | Should -Be "Meters on Demand"
         }
-        It "Gets the 'meters-on-demand/cli' skin object using skin_name" {
+        It "Gets the 'meters-on-demand/cli' skin object using skinname" {
             $me = Get-SkinObject -RootConfig "Meters on Demand"
-            $me.skin_name | Should -Be "Meters on Demand"
+            $me.skinName | Should -Be "Meters on Demand"
         }
     }
 }
@@ -72,12 +72,12 @@ Describe "Search" {
     It "Finds meters-on-demand/cli skin" {
         $results = Search -Query "meters-on-demand/cli" -Quiet
         $me = $results[0]
-        $me.full_name | Should -Be "meters-on-demand/cli"
+        $me.fullName | Should -Be "meters-on-demand/cli"
     }
     It "Finds skins using other properties" {
-        $results = Search -Query "Meters on Demand" -Property "skin_name" -Quiet
+        $results = Search -Query "Meters on Demand" -Property "skinname" -Quiet
         $me = $results[0]
-        $me.full_name | Should -Be "meters-on-demand/cli"
+        $me.fullName | Should -Be "meters-on-demand/cli"
     }
 }
 

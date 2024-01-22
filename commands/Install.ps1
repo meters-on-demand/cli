@@ -27,7 +27,7 @@ function Install {
             throw "Too many results, use a more specific query"
         }
         if ($Matched.Length -eq 0) { throw "No results" }
-        $FullName = $Matched[0].full_name
+        $FullName = $Matched[0].fullName
     }
 
     Test-Installed -FullName $FullName -Force:$Force

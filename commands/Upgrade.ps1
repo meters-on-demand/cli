@@ -10,12 +10,12 @@ function Upgrade {
 
     $Cache = $MetersOnDemand.Cache
     $Skin = Get-SkinObject $FullName
-    $installed = $Cache.Installed.($Skin.full_name)
+    $installed = $Cache.Installed.($Skin.fullName)
 
     if (!$installed) {
         throw "$($FullName) is not installed"
     }
-    if (!$Force -and !($Cache.Updateable.($Skin.full_name))) {
+    if (!$Force -and !($Cache.Updateable.($Skin.fullName))) {
         throw "$($FullName) $($installed) is the latest version"
     }
 

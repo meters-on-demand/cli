@@ -19,7 +19,7 @@ function Uninstall {
     }
 
     $skinPath = $Cache.SkinPath
-    $skinName = $Cache.SkinsByFullName.$FullName.skin_name
+    $skinName = $Cache.SkinsByFullName.$FullName.skinname
 
     $removedDirectory = RemovedDirectory
     $path = "$($skinPath)\$($skinName)"

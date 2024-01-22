@@ -30,8 +30,8 @@ function Info {
         # $FullName = $Rootconfig
     }
     else {
-        $FullName = $SkinObject.full_name
-        $RootConfig = $SkinObject.skin_name
+        $FullName = $SkinObject.fullName
+        $RootConfig = $SkinObject.skinname
     }
 
     $SkinInfo = [pscustomobject](Get-SkinInfo -RootConfig $RootConfig)
@@ -43,13 +43,32 @@ function Info {
 
 }
 
-function Format-SkinObjec {
+function Format-SkinObject {
     param (
         [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
         [pscustomobject]
         $Skin
     )
 
-    Write-Host $Skin
+    $Installed = $MetersOnDemand.Cache.Installed
+    $FullName = $Skin.FullName
+
+    Write-Host $Skin.Name -ForegroundColor Blue -NoNewline
+    Write-Host " $($Skin.Version)" 
+    Write-Host $Skin.Description
+
+    [pscustomobject]@{ 
+        CreatedAt = $Skin.CreatedAt
+        Owner     = $Skin.Owner.Name
+        Topics    = $Skin.Topics -join ", "
+    } | Format-List
+
+    Write-Host @"
+[Rainmeter]
+$(if($Skin.LoadType) { "LoadType="+$Skin.LoadType })
+$(if($Skin.Load) { "Load="+$Skin.Load })
+Version=$(if($Skin.Version) {$Skin.Version} else {$Installed.$FullName.TagName})
+
+"@
 
 }

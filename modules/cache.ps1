@@ -87,7 +87,7 @@ function Get-SkinsBySkinName {
     if (!$Skins) { $Skins = $MetersOnDemand.Cache.Skins }
     $SkinsBySkinName = [PSCustomObject]@{ }
     $Skins | ForEach-Object {
-        $SkinsBySkinName | Add-Member -MemberType NoteProperty -Name "$($_.skin_name)" -Value $_ -Force
+        $SkinsBySkinName | Add-Member -MemberType NoteProperty -Name "$($_.skinname)" -Value $_ -Force
     }
     return $SkinsBySkinName
 
@@ -104,7 +104,7 @@ function Get-SkinsByFullName {
     if (!$Skins) { $Skins = $MetersOnDemand.Cache.Skins }
     $SkinsByFullName = [PSCustomObject]@{ }
     $Skins | ForEach-Object {
-        $SkinsByFullName | Add-Member -MemberType NoteProperty -Name "$($_.full_name)" -Value $_ -Force
+        $SkinsByFullName | Add-Member -MemberType NoteProperty -Name "$($_.fullName)" -Value $_ -Force
     }
     return $SkinsByFullName
 
@@ -136,18 +136,18 @@ function Get-InstalledSkins {
         $Skin = $SkinsBySkinName.$RootConfig
         if ((!$Skin) -and (!$SkinInfo)) { return }
 
-        $full_name = $Skin.full_name
-        if (!$full_name) { $full_name = $RootConfig }
+        $fullName = $Skin.fullName
+        if (!$fullName) { $fullName = $RootConfig }
         $existing = $SkinInfo.Version
-        if (!$existing) { $existing = $Installed.$full_name }
+        if (!$existing) { $existing = $Installed.$fullName }
 
         if ($existing) {
-            $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $existing
+            $NewInstalled | Add-Member -MemberType NoteProperty -Name "$fullName" -Value $existing
         }
         else {
-            $latest = $Skin.latest_release.tag_name
+            $latest = $Skin.latestRelease.tagName
             if (!$latest) { $latest = "unknown" }
-            $NewInstalled | Add-Member -MemberType NoteProperty -Name "$full_name" -Value $latest
+            $NewInstalled | Add-Member -MemberType NoteProperty -Name "$fullName" -Value $latest
         }
     }
 

@@ -39,7 +39,7 @@ function Write-FormattedConfig {
     $installedCount = ($Cache.Installed | ToIteratable | Measure-Object).Count
 
     # Format cache values
-    $Cache.Skins = "@(@{ full_name = `"meters-on-demand/cli`", skin_name = `"Meters on Demand`", ... }, $($skinsCount - 1) more items... )"
+    $Cache.Skins = "@(@{ fullName = `"meters-on-demand/cli`", skinname = `"Meters on Demand`", ... }, $($skinsCount - 1) more items... )"
     $Cache.SkinsByFullName = "@{ `"meters-on-demand/cli`": @{ ... }, $($skinsCount - 1) more items... }"
     $Cache.SkinsBySkinName = "@{ `"Meters on Demand`": @{ ... }, $($skinsCount - 1) more items... }"
     $Cache.Installed = "@{ `"meters-on-demand/cli`": `"$($MetersOnDemand.Version)`", $($installedCount - 1) more items... }"

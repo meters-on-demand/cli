@@ -2,7 +2,7 @@ function Help {
 
     Limit-PowerShellVersion
 
-    $skinSig = "[-Skin] <full_name>"
+    $skinSig = "[-Skin] <fullName>"
     $forceSig = "[-Force]"
     $packageWiki = "https://docs.rainmeter.skin/cli/package"
     $initWiki = "https://docs.rainmeter.skin/cli/init"
@@ -64,7 +64,7 @@ function Help {
         }, 
         [pscustomobject]@{
             Name        = "init"
-            Signature   = "[-Skin] <skin_name>"
+            Signature   = "[-Skin] <skinname>"
             Description = "creates a new skin folder from a template"
             Wiki        = $initWiki
         },
