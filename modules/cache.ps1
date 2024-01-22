@@ -11,13 +11,29 @@ function Add-SkinLists {
     param (
         [Parameter(Mandatory, ValueFromPipeline, Position = 0)]
         [pscustomobject]
-        $Cache
+        $Cache,
+        [Parameter()]
+        [switch]
+        $Fallback,
+        [Parameter()]
+        [switch]
+        $Break
     )
 
     $CurrentDate = Get-Date -Format "MM-dd-yy"
     $Cache | Add-Member -MemberType NoteProperty -Name "LastChecked" -Value $CurrentDate -Force
 
-    $Skins = Get-SkinList -Cache $Cache
+    if ($Fallback) { $Break = $True }
+    try {
+        $Skins = Get-SkinList -Cache $Cache -Break:$Break
+    }
+    catch {
+        if (!$Fallback) { throw $_ }
+        $Skins = @()
+        $Cache | Add-Member -MemberType NoteProperty -Name "Skins" -Value $Skins -Force
+        return Add-Installed $Cache
+    }
+
     $Cache | Add-Member -MemberType NoteProperty -Name "Skins" -Value $Skins -Force
     $Cache | Add-Member -MemberType NoteProperty -Name "SkinsBySkinName" -Value (Get-SkinsBySkinName -Skins $Skins) -Force
     $Cache | Add-Member -MemberType NoteProperty -Name "SkinsByFullName" -Value (Get-SkinsByFullName -Skins $Skins) -Force
@@ -57,7 +73,10 @@ function Get-SkinList {
         $Cache,
         [Parameter()]
         [switch]
-        $Quiet
+        $Quiet,
+        [Parameter()]
+        [switch]
+        $Break
     )
 
     $response = $false
@@ -65,9 +84,12 @@ function Get-SkinList {
         $response = Get-Request $MetersOnDemand.Api.Endpoints.Skins
     }
     catch {
+        if ($Break) {
+            throw "Couldn't reach the API"
+        }
         if (!$Quiet) {
             Write-Exception $_
-            Write-Exception "Couldn't reach API, using cache..."
+            Write-Exception "Couldn't reach the API, using cache..."
         }
     }
     if (!$response) { return $Cache.Skins }
@@ -126,7 +148,7 @@ function Get-InstalledSkins {
     }
 
     $NewInstalled = ([PSCustomObject] @{ })
-    $SkinsBySkinName = Get-SkinsBySkinName -Skins $Skins
+    $SkinsBySkinName = $Cache.SkinsBySkinName
     Get-ChildItem -Path "$($SkinPath)\*" -Directory | ForEach-Object {
         $RootConfig = $_.BaseName
 

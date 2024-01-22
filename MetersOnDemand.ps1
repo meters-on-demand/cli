@@ -169,10 +169,13 @@ function InstallMetersOnDemand {
         $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))" -replace "\\$", ""
         $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))" -replace "\\$", ""
         $ProgramPath = "$($RainmeterDirectory)\Rainmeter.exe"
-
+        
+        
         Write-Host "Installing Meters on Demand..."
         $RootConfigPath = "$($SkinPath)\$($MetersOnDemand.SkinName)"
         $InstallPath = "$SkinPath\$($MetersOnDemand.Directory)"
+
+        $MetersOnDemand.LogFile = "$($RootConfigPath)\$($MetersOnDemand.LogFile)"
 
         # Load modules from the root path
         Get-ChildItem "$($RootConfigPath)\$($MetersOnDemand.Modules)\*" | ForEach-Object {
@@ -213,7 +216,7 @@ function InstallMetersOnDemand {
                 ProgramPath        = $ProgramPath
                 RainmeterDirectory = $RainmeterDirectory
                 ConfigEditor       = $ConfigEditor
-            }) | Add-SkinLists | Save-Cache -Path "$($RootConfigPath)\cache.json" -Quiet
+            }) | Add-SkinLists -Fallback | Save-Cache -Path "$($RootConfigPath)\cache.json" -Quiet
 
         Write-Host "Copying script files from '$RootConfigPath' to '$InstallPath'"
         New-Item -ItemType Directory -Path "$($InstallPath)"
