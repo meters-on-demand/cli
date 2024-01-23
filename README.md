@@ -55,16 +55,16 @@ Invoke-Pester -Output Detailed
   - [x] Look into using PowerShell modules to isolate $MetersOnDemand into module scope
   - Too hard and Microsoft ain't doin shit about it
 - [ ] Clean function signatures and the code base in general skull
-- [ ] Use ParameterSets and Aliases instead of a billion different variables and checking if they're set
+- [x] Use ParameterSets and Aliases instead of a billion different variables and checking if they're set
   - eg. `Alias("Bangs", "Bang")` instead of `if($Parameter -and !$Bang) { $Bang = $Parameter }`
   - Read https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-7.4
-- [ ] Add `Set-Alias` into powershell profile to access MetersOnDemand.ps1 directly in PowerShell
-  - Ask the user before doing this. Maybe use registry or something to store if the user has already been asked? Or the config file. 
+- [x] Add `Set-Alias` into powershell profile to access MetersOnDemand.ps1 directly in PowerShell
+  - Ask the user before doing this. Maybe use registry or something to store if the user has already been asked? Or the config file.
 - [ ] Make `uninstall` and `restore` send bangs to Rainmeter
 - [x] Use Version from mond.inc for skins that have it in `Get-InstalledSkins`
 - [ ] Work on `mond plugin [-Plugin] <plugin> [-Version <version>]` and the [plugin repository](https://github.com/meters-on-demand/plugins)
   - `mond plugin` is needed for silent installs and installs from git sources in general
-  - Using a repository is kinda sussy since it's just .dll files. At least it's public but still 
+  - Using a repository is kinda sussy since it's just .dll files. At least it's public but still
   - Investigate how easy it'd be to scrape the forums or how ethical it'd be to include the .dlls into a repository
 - [x] Make the API work with any git source. Git itself has tags which are the way the API tracks skin updates.
   - This would also enable silent installs

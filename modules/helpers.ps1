@@ -340,7 +340,7 @@ function Merge-Object {
     $Source | ToIteratable | ForEach-Object {
         $Key = $_.Name
         $Value = $_.Value
-        if ((!$Target.$Key) -or ($Override)) {
+        if (($null -eq $Target.$Key) -or ($Override)) {
             $Target | Add-Member -MemberType NoteProperty -Name $Key -Value $Value -Force
         }
     }

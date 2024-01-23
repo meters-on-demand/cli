@@ -4,6 +4,7 @@ function New-Config {
         Load           = $True
         LoadPreference = "skin"
         LoadEither     = $False
+        AskAlias       = $True
     }
 }
 

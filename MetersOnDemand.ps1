@@ -169,7 +169,7 @@ DynamicParam {
         }
         "bang" {
             $Set = 'Bang'
-            Add-Param -Name 'Bang' -Type "String" -Attributes (Get-Attributes $Set $True 1)
+            Add-Param -Name 'Bang' -Type "String" -Attributes (Get-Attributes $Set $False 1)
             Add-Param -Name 'StartRainmeter' -Type "switch" -Attributes (Get-Attributes $Set)
             Add-Param -Name 'StopRainmeter' -Type "switch" -Attributes (Get-Attributes $Set)
             break
@@ -263,8 +263,7 @@ begin {
             $ConfigEditor = "$($RmApi.VariableStr("CONFIGEDITOR"))" -replace "\\$", ""
             $RainmeterDirectory = "$($RmApi.VariableStr("PROGRAMPATH"))" -replace "\\$", ""
             $ProgramPath = "$($RainmeterDirectory)\Rainmeter.exe"
-        
-        
+
             Write-Host "Installing Meters on Demand..."
             $RootConfigPath = "$($SkinPath)\$($MetersOnDemand.SkinName)"
             $InstallPath = "$SkinPath\$($MetersOnDemand.Directory)"
@@ -353,17 +352,21 @@ process {
     try {
         $isDotSourced = $MyInvocation.InvocationName -eq '.'
 
-        # Commands that do not need the cache
-        if ($Command -eq "help") { return Help }
+        # Commands that do not need the cache or config
         if ($Command -eq "version") { return Version }
 
-        # Read the cache and config
-        $MetersOnDemand.Cache = Get-Cache
+        # Read the config
         $MetersOnDemand.Config = Get-Config
+
+        # Commands that don't need the cache
+        if ($Command -eq "help") { return Help }
+
+        # Read the cache
+        $MetersOnDemand.Cache = Get-Cache
 
         if ($isDotSourced) { return }
 
-        # Mond alias
+        # Mond skin alias
         if (@("install", "upgrade", "search").Contains($Command)) {
             if ($PSBoundParameters.Skin -like "mond") { $PSBoundParameters.Skin = $MetersOnDemand.FullName }
         }
@@ -378,6 +381,10 @@ process {
                 }
                 Get-Cache | Add-SkinLists | Save-Cache -Quiet
                 Write-Host "Cache updated!"
+                break
+            }
+            "alias" {
+                Set-MondAlias
                 break
             }
             "install" {

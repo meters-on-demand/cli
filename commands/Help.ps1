@@ -8,6 +8,13 @@ function Help {
     $initWiki = "https://docs.rainmeter.skin/cli/init"
 
     $Topic = $PSBoundParameters.Topic
+    
+    if($MetersOnDemand.Config.AskAlias) {
+        Write-Host "Use 'mond alias' to add aliases to your PowerShell profile"
+        Write-Host "Use 'mond help alias' for more information"
+        Write-Host "Use 'mond config AskAlias false' to suppress this message" -ForegroundColor Yellow
+        Write-Host ""
+    }
 
     $commands = @(
         [pscustomobject]@{
@@ -49,6 +56,11 @@ function Help {
             Name        = "version"
             Signature   = ""
             Description = "prints the MonD version"
+        },
+        [pscustomobject]@{
+            Name        = "alias"
+            Signature   = ""
+            Description = "adds Set-Alias calls to your PowerShell `$PROFILE`n aliases speed up mond by skipping the cmd invocation`n if you use both PowerShell 5 and 7, you'll have to run 'mond alias' in both"
         },
         [pscustomobject]@{
             Name        = "help"
