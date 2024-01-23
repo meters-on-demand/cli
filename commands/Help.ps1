@@ -7,6 +7,8 @@ function Help {
     $packageWiki = "https://docs.rainmeter.skin/cli/package"
     $initWiki = "https://docs.rainmeter.skin/cli/init"
 
+    $Topic = $PSBoundParameters.Topic
+
     $commands = @(
         [pscustomobject]@{
             Name        = "update"
@@ -105,7 +107,7 @@ function Help {
         }
     )
 
-    if ($Parameter -eq "dev") {
+    if ($Topic -eq "dev") {
         foreach ($command in $devCommands) {
             Write-Host "$($command.name) " -ForegroundColor White -NoNewline
             Write-Host "$($command.signature) " -ForegroundColor Cyan
@@ -118,17 +120,17 @@ function Help {
         return
     }
 
-    if ($Parameter) {
-        if ($Parameter -eq "api") { 
+    if ($Topic) {
+        if ($Topic -eq "api") { 
             Start-Process "$($MetersOnDemand.Api.Wiki)"
             return
         }
-        $command = $commands | Where-Object { $_.Name -eq $Parameter }
-        if (!$command) { $command = $devCommands | Where-Object { $_.Name -eq $Parameter } }
+        $command = $commands | Where-Object { $_.Name -eq $Topic }
+        if (!$command) { $command = $devCommands | Where-Object { $_.Name -eq $Topic } }
         if (!$command) { 
-            throw "$($Parameter) is not a command. Use 'mond help' to see all available commands."
+            throw "$($Topic) is not a command. Use 'mond help' to see all available commands."
         }
-        if ($Parameter -eq "package") { 
+        if ($Topic -eq "package") { 
             Start-Process "$($packageWiki)"
             return
         }

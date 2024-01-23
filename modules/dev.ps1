@@ -187,6 +187,8 @@ function Assert-RootConfig {
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
 
+    $Skin = $PSBoundParameters.Skin
+
     $workingParent = Split-Path -Path $pwd
     if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Skin)) {
         throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Skin parameter!"

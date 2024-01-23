@@ -28,12 +28,16 @@ DynamicParam {
         )
         $paramDictionary.Add($ParameterName, (Get-Parameter $ParameterName $Type $Attributes))
     }
-    
+
     switch ($Command) {
+        "help" {
+            $Set = 'Help'
+            Add-Param -Name 'Topic' -Type "String" -Attributes (Get-Attributes $Set $False 1)
+            break
+        }
         "update" {
             $Set = 'Update'
-            Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $True 1)
-            Add-Param -Name 'Force' -Type "switch" -Attributes (Get-Attributes $Set)
+            Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $False 1)
             break
         }
         "install" {
@@ -329,9 +333,9 @@ process {
 
         switch ($Command) {
             "update" {
-                if ($Skin) {
+                if ($PSBoundParameters.Skin) {
                     Write-Host "Use '" -NoNewline -ForegroundColor Gray
-                    Write-Host "mond upgrade $Skin" -ForegroundColor White -NoNewline
+                    Write-Host "mond upgrade $($PSBoundParameters.Skin)" -ForegroundColor White -NoNewline
                     Write-Host "' to upgrade a skin."
                     return
                 }
@@ -340,60 +344,42 @@ process {
                 break
             }
             "install" {
-                # if (-not $PSBoundParameters.Skin) {
-                #     throw "Install requires the named parameter -Skin (Position = 1)"
-                # }
                 Install -FullName $PSBoundParameters.Skin -Force:$Force -FirstMatch:$True
                 break
             }
             "info" {
-                if (-not $Skin) {
-                    throw "Info requires the named parameter -Skin (Position = 1)"
-                }
-                Info -Name $Skin -Print:(!$Raw)
+                Info -Name $PSBoundParameters.Skin -Print:(!$PSBoundParameters.Raw)
                 break
             }
             "list" {
                 $Skins = @()
                 $Unknown = @()
-            (ToIteratable -Object $MetersOnDemand.Cache.Installed) | ForEach-Object {
+                (ToIteratable -Object $MetersOnDemand.Cache.Installed) | ForEach-Object {
                     $Skin = Get-SkinObject -FullName $_.name -Quiet
                     if ($Skin) { $Skins += Get-SkinObject -FullName $_.name -Quiet }
                     else { $Unknown += @{fullName = $_.Name; version = $_.value } } 
                 }
                 Format-SkinList -Skins $Skins
-                if (!$Unmanaged) { break }
+                if (!$PSBoundParameters.Unmanaged) { break }
                 Write-Host "Unmanaged skins: " -BackgroundColor Yellow -NoNewline
                 Write-Host ""
                 Format-SkinList -Skins $Unknown
                 break 
             }
             "upgrade" {
-                if (-not $Skin) {
-                    throw "Upgrade requires the named parameter -Skin (Position = 1)"
-                }
-                Upgrade -FullName $Skin -Force:$Force
+                Upgrade -FullName $PSBoundParameters.Skin -Force:$PSBoundParameters.Force
                 break
             }
             "uninstall" {
-                if (-not $Skin) {
-                    throw "Uninstall requires the named parameter -Skin (Position = 1)"
-                }
-                Uninstall -FullName $Skin -Force:$Force
+                Uninstall -FullName $PSBoundParameters.Skin -Force:$PSBoundParameters.Force
                 break
             }
             "restore" {
-                if (-not $Skin) {
-                    throw "Restore requires the named parameter -Skin (Position = 1)"
-                }
-                Restore -FullName $Skin -Force:$Force
+                Restore -FullName $PSBoundParameters.Skin -Force:$PSBoundParameters.Force
                 break
             }
             "init" {
-                if (-not $Skin) {
-                    throw "Usage: mond init SkinName"
-                }
-                New-Skin -SkinName $Skin
+                New-Skin -SkinName $PSBoundParameters.Skin
                 break
             }
             "refresh" {
@@ -411,10 +397,12 @@ process {
                 break
             }
             "search" {
-                Search -Query $Query -Property $Property
+                Search -Query $PSBoundParameters.Query -Property $PSBoundParameters.Property
                 break
             }
             "config" {
+                $Option = $PSBoundParameters.Option
+                $Value = $PSBoundParameters.Value
                 if ($Option -and $Value) {
                     return Set-Config $Option $Value
                 }
@@ -425,7 +413,7 @@ process {
                 break
             }
             "bang" {
-                return Invoke-Bang -Bang $Bang -StartRainmeter:$StartRainmeter -StopRainmeter:$StopRainmeter
+                return Invoke-Bang -Bang $PSBoundParameters.Bang -StartRainmeter:($PSBoundParameters.StartRainmeter) -StopRainmeter:($PSBoundParameters.StopRainmeter)
                 break
             }
             Default {
