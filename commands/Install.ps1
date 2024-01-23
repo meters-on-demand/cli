@@ -78,14 +78,17 @@ function Write-InstallCache {
 
     if ($RootConfig) {
         $Skin = Get-SkinInfo -RootConfig $RootConfig
+        if (!$Version) {
+            $Version = $Skin.Version
+        }
     }
     if ($FullName) {
         $Skin = Get-SkinObject -FullName $FullName
+        if (!$Version) {
+            $Version = $Skin.LatestRelease.TagName
+        }
     }
 
-    if (!$Version) {
-        $Version = $Skin.Version
-    }
 
     if (!$Version) {
         Write-Host "Couldn't find version information for $(if($RootConfig) {$RootConfig} else {$FullName}), installation not recorded"

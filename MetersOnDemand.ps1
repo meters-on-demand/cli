@@ -134,7 +134,7 @@ DynamicParam {
         }
         "lock" {
             $Set = 'Lock'
-            Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $True 1)
+            Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $False 1)
             break
         }
         "package" {
@@ -157,8 +157,8 @@ DynamicParam {
         }
         "search" {
             $Set = 'Search'
-            Add-Param -Name 'Query' -Type "String" -Attributes (Get-Attributes $Set $True 1)
-            Add-Param -Name 'Property' -Type "String" -Attributes (Get-Attributes $Set)
+            Add-Param -Name 'Query' -Type "String" -Attributes (Get-Attributes $Set $False 1)
+            Add-Param -Name 'Property' -Type "String" -Attributes (Get-Attributes $Set $False 2)
             break
         }
         "config" {
@@ -388,7 +388,7 @@ process {
                 break
             }
             "install" {
-                Install -FullName $PSBoundParameters.Skin -Force:$Force -FirstMatch:$True
+                Install -FullName $PSBoundParameters.Skin -Force:$PSBoundParameters.Force -FirstMatch:$True
                 break
             }
             "info" {
