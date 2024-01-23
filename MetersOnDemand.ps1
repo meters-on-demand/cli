@@ -2,16 +2,63 @@
 param (
     [Parameter(Position = 0)]
     [string]
-    $Command = "help",
+    $Command,
     [Parameter()]
     [switch]
     $Quiet
 )
 DynamicParam {
-
-    . .\parseParams.ps1
-
     $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+
+    function Get-Attributes {
+        param (
+            [Parameter(Position = 0, ValueFromPipeline)]
+            [string]
+            $ParameterSetName,
+            [Parameter(Position = 1)]
+            [System.Boolean]
+            $Mandatory,
+            [Parameter(Position = 2)]
+            [int]
+            $Position,
+            [Parameter()]
+            [String[]]
+            $Alias,
+            [Parameter()]
+            [String[]]
+            $Enum
+        )
+        $Attributes = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+        $a = [System.Management.Automation.ParameterAttribute]@{ }
+        if ($ParameterSetName) { $a.ParameterSetName = $ParameterSetName }
+        if ($Mandatory) { $a.Mandatory = $Mandatory }
+        if ($Position) { $a.Position = $Position }
+        $Attributes.Add($a)
+        if ($Alias) {
+            $Attributes.Add([System.Management.Automation.AliasAttribute]::new($Alias))
+        }
+        if ($Enum) {
+            $Attributes.Add([System.Management.Automation.ValidateSetAttribute]::new($Enum))
+        }
+        return $Attributes
+    }
+    
+    function Get-Parameter {
+        param (
+            [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
+            [string]
+            $ParameterName,
+            [Parameter(Mandatory, Position = 1)]
+            [type]
+            $Type,
+            [Parameter(Mandatory, Position = 2)]
+            [System.Collections.ObjectModel.Collection[System.Attribute]]
+            $Attributes
+        )
+        return [System.Management.Automation.RuntimeDefinedParameter]::new(
+            $ParameterName, $Type, $Attributes
+        )
+    }
 
     function Add-Param {
         param (
@@ -63,6 +110,11 @@ DynamicParam {
             Add-Param -Name 'Force' -Type "switch" -Attributes (Get-Attributes $Set)
             break
         }
+        "open" {
+            $Set = 'Open'
+            Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $True 1)
+            break
+        }
         "uninstall" {
             $Set = 'Uninstall'
             Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $True 1)
@@ -87,8 +139,7 @@ DynamicParam {
         }
         "package" {
             $Set = 'Package'
-            
-            Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $True 1)
+            Add-Param -Name 'Skin' -Type "String" -Attributes (Get-Attributes $Set $False 1)
             Add-Param -Name 'Exclude' -Type "String" -Attributes (Get-Attributes $Set)
             Add-Param -Name 'Author' -Type "String" -Attributes (Get-Attributes $Set)
             Add-Param -Name 'MinimumRainmeter' -Type "String" -Attributes (Get-Attributes $Set)
@@ -97,27 +148,11 @@ DynamicParam {
             Add-Param -Name 'MinimumWindows' -Type "String" -Attributes (Get-Attributes $Set)
             Add-Param -Name 'HeaderImage' -Type "String" -Attributes (Get-Attributes $Set)
             Add-Param -Name 'MergeSkins' -Type "switch" -Attributes (Get-Attributes $Set)
-
-            $OutPathAttributes = Get-Attributes $Set
-            $OutPathAttributes.Add([System.Management.Automation.AliasAttribute]::new("o"))
-            Add-Param -Name 'OutPath' -Type "String" -Attributes $OutPathAttributes
-
-            $OutFileAttributes = Get-Attributes $Set
-            $OutFileAttributes.Add([System.Management.Automation.AliasAttribute]::new("name"))
-            Add-Param -Name 'OutFile' -Type "String" -Attributes $OutFileAttributes
-
-            $OutDirectoryAttributes = Get-Attributes $Set
-            $OutDirectoryAttributes.Add([System.Management.Automation.AliasAttribute]::new("OutDir", "Directory", "d"))
-            Add-Param -Name 'OutFile' -Type "String" -Attributes $OutDirectoryAttributes
-            
-            $VersionAttributes = Get-Attributes $Set
-            $VersionAttributes.Add([System.Management.Automation.AliasAttribute]::new("Version", "v"))
-            Add-Param -Name 'PackageVersion' -Type "String" -Attributes $VersionAttributes
-            
-            $LoadTypeAttributes = Get-Attributes $Set
-            $LoadTypeAttributes.Add([System.Management.Automation.ValidateEnumeratedArgumentsAttribute]::new(@("Skin", "Layout")))
-            Add-Param -Name 'LoadType' -Type "String" -Attributes $VersionAttributes
-
+            Add-Param -Name 'OutPath' -Type "String" -Attributes (Get-Attributes $Set -Alias @("o"))
+            Add-Param -Name 'OutFile' -Type "String" -Attributes (Get-Attributes $Set -Alias @("Name"))
+            Add-Param -Name 'OutDirectory' -Type "String" -Attributes (Get-Attributes $Set -Alias @("OutDir", "Directory", "d"))
+            Add-Param -Name 'PackageVersion' -Type "String" -Attributes (Get-Attributes $Set -Alias @("Version"))
+            Add-Param -Name 'LoadType' -Type "String" -Attributes (Get-Attributes $Set -Enum @("Skin", "Layout"))
             break
         }
         "search" {
@@ -140,6 +175,8 @@ DynamicParam {
             break
         }
         Default {
+            $Set = "NoCommand"
+            Add-Param -Name "Version" -Type "switch" -Attributes (Get-Attributes $Set)
             break
         }
     }
@@ -317,7 +354,7 @@ process {
         $isDotSourced = $MyInvocation.InvocationName -eq '.'
 
         # Commands that do not need the cache
-        if (($Command -eq "help") -and !$isDotSourced) { return Help }
+        if ($Command -eq "help") { return Help }
         if ($Command -eq "version") { return Version }
 
         # Read the cache and config
@@ -328,7 +365,7 @@ process {
 
         # Mond alias
         if (@("install", "upgrade", "search").Contains($Command)) {
-            if ($Skin -like "mond") { $Skin = $MetersOnDemand.FullName }
+            if ($PSBoundParameters.Skin -like "mond") { $PSBoundParameters.Skin = $MetersOnDemand.FullName }
         }
 
         switch ($Command) {
@@ -390,6 +427,11 @@ process {
                 $RootConfig = Assert-RootConfig
                 New-Lock -RootConfig $RootConfig
             }
+            "open" {
+                $RootConfig = Assert-RootConfig
+                Open-Skin $RootConfig
+                break
+            }
             "package" {
                 Limit-PowerShellVersion
                 $RootConfig = Assert-RootConfig
@@ -417,7 +459,10 @@ process {
                 break
             }
             Default {
-                Test-DevCommand
+                if ($PSBoundParameters.Version) { return Version }
+                if ($isDotSourced) { return }
+                if ($Command) { return Test-DevCommand }
+                return Help
                 break
             }
         }

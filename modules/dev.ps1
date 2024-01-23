@@ -3,17 +3,12 @@ function Test-DevCommand {
 
     switch ($Command) {
         "dir" { 
-            Start-Process -FilePath "explorer.exe" -ArgumentList "$($Cache.SkinPath)\$($MetersOnDemand.Directory)"
-            return 
+            return Start-Process -FilePath "explorer.exe" -ArgumentList "$($Cache.SkinPath)\$($MetersOnDemand.Directory)"
         }
         "cache" {
             return $Cache
         }
-        "open" {
-            $RootConfig = Assert-RootConfig
-            return Open-Skin $RootConfig
-        }
-        Default {}
+        Default { }
     }
 
     if ($MetersOnDemand.$Command) {
