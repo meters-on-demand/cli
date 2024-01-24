@@ -35,6 +35,7 @@ function Get-Request {
 }
 
 function RemovedDirectory {
+    $Cache = $MetersOnDemand.Cache
     $removedDirectory = "$($Cache.SkinPath)\@Backup"
     if (-not(Test-Path -Path $removedDirectory)) {
         New-Item -Path $removedDirectory -ItemType Directory
@@ -282,6 +283,8 @@ function Format-SkinList {
         [Switch]
         $Description
     )
+
+    $Cache = $MetersOnDemand.Cache
 
     $Skins | Sort-Object -Property "fullName" | ForEach-Object {
         Write-Host $_.fullName -ForegroundColor Blue -NoNewline

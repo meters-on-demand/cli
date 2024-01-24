@@ -127,9 +127,10 @@ function Open-Skin {
         [string]
         $SkinName
     )
-
+    $Cache = $MetersOnDemand.Cache
     $ConfigPath = "$($Cache.SkinPath)\$($SkinName)"
-    
+    Write-Host $ConfigPath
+
     if (!(Test-Path -Path $ConfigPath)) {
         throw "Specified skin does not exist"
     }
