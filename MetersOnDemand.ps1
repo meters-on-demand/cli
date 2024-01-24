@@ -359,7 +359,7 @@ process {
         $MetersOnDemand.Config = Get-Config
 
         # Commands that don't need the cache
-        if ($Command -eq "help") { return Help }
+        if ($Command -eq "help") { return Help $PSBoundParameters.Topic }
 
         # Read the cache
         $MetersOnDemand.Cache = Get-Cache
@@ -469,7 +469,7 @@ process {
                 if ($PSBoundParameters.Version) { return Version }
                 if ($isDotSourced) { return }
                 if ($Command) { return Test-DevCommand }
-                return Help
+                return Help $PSBoundParameters.Topic
                 break
             }
         }

@@ -1,4 +1,9 @@
 function Help {
+    param(
+        [Parameter(Position = 0)]
+        [string]
+        $Topic
+    )
 
     Limit-PowerShellVersion
 
@@ -6,8 +11,6 @@ function Help {
     $forceSig = "[-Force]"
     $packageWiki = "https://docs.rainmeter.skin/cli/package"
     $initWiki = "https://docs.rainmeter.skin/cli/init"
-
-    $Topic = $PSBoundParameters.Topic
     
     if($MetersOnDemand.Config.AskAlias) {
         Write-Host "Use 'mond alias' to add aliases to your PowerShell profile"
