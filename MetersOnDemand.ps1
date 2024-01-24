@@ -431,17 +431,17 @@ process {
                 break
             }
             "lock" {
-                $RootConfig = Assert-RootConfig
+                $RootConfig = Assert-RootConfig $PSBoundParameters.Skin
                 New-Lock -RootConfig $RootConfig
             }
             "open" {
-                $RootConfig = Assert-RootConfig
+                $RootConfig = Assert-RootConfig $PSBoundParameters.Skin
                 Open-Skin $RootConfig
                 break
             }
             "package" {
                 Limit-PowerShellVersion
-                $RootConfig = Assert-RootConfig
+                $RootConfig = Assert-RootConfig $PSBoundParameters.Skin
                 New-Package -RootConfig "$RootConfig"
                 break
             }

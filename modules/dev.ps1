@@ -179,19 +179,29 @@ function New-Lock {
 }
 
 function Assert-RootConfig {
+    param(
+        [Parameter(Position = 0)]
+        [string]
+        $Skin
+    )
+
     $Cache = $MetersOnDemand.Cache
     $SkinPath = $Cache.SkinPath
 
-    $Skin = $PSBoundParameters.Skin
-
     $workingParent = Split-Path -Path $pwd
+    $workingName = Split-Path -Path $pwd -Leaf
+
     if (("$workingParent" -notlike "$($SkinPath)*") -and (!$Skin)) {
         throw "You must be in '$($SkinPath)\<config>' to use package without specifying the -Skin parameter!"
     }
 
-    $workingName = Split-Path -Path $pwd -Leaf
     $RootConfig = $workingName
     if ($Skin) { $RootConfig = $Skin }
+
+    $RootConfigPath = "$($SkinPath)\$($RootConfig)"
+    if (!(Test-Path -Path $RootConfigPath)) { 
+        throw "RootConfig '$($RootConfig)' does not exist. ('$($RootConfigPath)')" 
+    }
 
     return $RootConfig
 }
