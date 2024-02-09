@@ -51,6 +51,12 @@ Invoke-Pester -Output Detailed
 
 # TO-DO:
 
+- [ ] Release 1.5 with ExecutionPolicy fix
+- [ ] Convert into PowerShell module
+- [ ] Make nonp and ContextMenu "mondx" scripts (like npx but for mond skull)
+  - Ask cari if I can yoink the FixSkinPath stuffs into mondx too
+  - `mondx [-Script] <script> [-Target] <rootconfig> [-Force]`
+  - mondx AudioLevel 
 - [x] Put $Cache inside $MetersOnDemand, initialize cache with New-Cache stuff already there
   - [x] Look into using PowerShell modules to isolate $MetersOnDemand into module scope
   - Too hard and Microsoft ain't doin shit about it
@@ -60,7 +66,7 @@ Invoke-Pester -Output Detailed
   - Read https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-7.4
 - [x] Add `Set-Alias` into powershell profile to access MetersOnDemand.ps1 directly in PowerShell
   - Ask the user before doing this. Maybe use registry or something to store if the user has already been asked? Or the config file.
-- [ ] Make `uninstall` and `restore` send bangs to Rainmeter
+- [ ] Make `uninstall` and `restore` send `!RefreshApp` bangs to Rainmeter
 - [x] Use Version from mond.inc for skins that have it in `Get-InstalledSkins`
 - [ ] Work on `mond plugin [-Plugin] <plugin> [-Version <version>]` and the [plugin repository](https://github.com/meters-on-demand/plugins)
   - `mond plugin` is needed for silent installs and installs from git sources in general
