@@ -10,7 +10,10 @@ function Invoke-Bang {
         $StopRainmeter,
         [Alias("Start")]
         [switch]
-        $StartRainmeter
+        $StartRainmeter,
+        [Alias("SkipIf", "NoStart")]
+        [switch]
+        $SkipIfNoRainmeterProcess
     )
     if (!$StartRainmeter -and !$StopRainmeter -and !$Bang) {
         throw "Specify either '[-Bang] <bangs>', '-StartRainmeter' or '-StopRainmeter'"
@@ -20,13 +23,20 @@ function Invoke-Bang {
         Get-Process -Name "Rainmeter" -ErrorAction Ignore | Stop-Process
     }
     if ($StartRainmeter) {
-        if (!(Get-Process -Name "Rainmeter" -ErrorAction Ignore)) {
+        if (!(Test-Rainmeter)) {
             Start-Process -FilePath "$ProgramPath"
             if ($Bang) { Start-Sleep -Milliseconds 250 }
         }
     }
     if ($Bang) {
+        if ($SkipIfNoRainmeterProcess) {
+            if (!(Test-Rainmeter)) { return }
+        }
         if ($RmApi) { $RmApi.Bang($Bang) } 
         else { Start-Process -FilePath "$ProgramPath" -ArgumentList "$($Bang)" }
     }
+}
+
+function Test-Rainmeter { 
+    return (Get-Process -Name "Rainmeter" -ErrorAction Ignore)
 }

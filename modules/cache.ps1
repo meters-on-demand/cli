@@ -109,7 +109,7 @@ function Get-SkinsBySkinName {
     if (!$Skins) { $Skins = $MetersOnDemand.Cache.Skins }
     $SkinsBySkinName = [PSCustomObject]@{ }
     $Skins | ForEach-Object {
-        $SkinsBySkinName | Add-Member -MemberType NoteProperty -Name "$($_.skinname)" -Value $_ -Force
+        $SkinsBySkinName | Add-Member -MemberType NoteProperty -Name "$($_.skinName)" -Value $_ -Force
     }
     return $SkinsBySkinName
 

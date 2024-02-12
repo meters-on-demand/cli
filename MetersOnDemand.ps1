@@ -196,7 +196,7 @@ begin {
         Api           = [PSCustomObject]@{
             Url       = "https://api.rainmeter.skin"
             Endpoints = [PSCustomObject]@{
-                Skins = "http://localhost:8000/v1/skins"
+                Skins = "https://api.rainmeter.skin/v1/skins"
             }
             Wiki      = "https://docs.rainmeter.skin/api"
         }
@@ -324,9 +324,7 @@ begin {
 
             Write-Host "Successfully installed MonD $($MetersOnDemand.Version)!"
 
-            if ($RmApi) {
-                Invoke-Bang "[!About][!DeactivateConfig]"
-            }
+            Invoke-Bang "[!About][!DeactivateConfig]"
         }
         catch {
             Write-Exception -Exception $_ -Breaking

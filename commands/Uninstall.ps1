@@ -37,4 +37,6 @@ function Uninstall {
         Write-Host "Use 'mond restore $($FullName)' to restore"
     }
 
+    Invoke-Bang "[!RefreshApp]" -NoStart
+
 }

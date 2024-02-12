@@ -39,5 +39,7 @@ function Restore {
     if (!$Quiet) {
         Write-Host "Restored $($FullName)"
     }
+    
+    Invoke-Bang "[!RefreshApp]" -NoStart
 
 }
