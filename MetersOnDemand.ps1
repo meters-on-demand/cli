@@ -254,6 +254,16 @@ begin {
         return $MetersOnDemand.Version
     }
 
+    function Update-Status {
+        param (
+            [Parameter()]
+            [String]
+            $Status
+        )
+        $Meter = "MeterStatus"
+        Invoke-Bang "[!SetOption $Meter Text `"$Status`"][!UpdateMeter $Meter][!Redraw]"
+    }
+
     function InstallMetersOnDemand {
         try {
             if (!$RmApi) { throw "Meters on Demand can only be installed under PSRM" }
@@ -283,12 +293,15 @@ begin {
             $TempConfig = "$($RootConfigPath)\config.json"
             $Config = New-Config
             if (Test-Path $UserConfig) {
+                Update-Status "Merging existing user settings"
                 Write-Host "Merging existing user settings"
                 $Config = Read-Json -Path $UserConfig | Merge-Object -Source $Config
             }
             Out-Json -Object $Config -Path $TempConfig
 
             # Clear the InstallPath
+            Update-Status "Removing current version"
+            Write-Host "Removing current version"
             Remove-Item -Path "$($InstallPath)" -Recurse -Force
 
             # Write debug info
@@ -302,7 +315,9 @@ begin {
             Write-Host "ConfigEditor: $($ConfigEditor)"
             Write-Host "/////////////////"
 
+            Update-Status "Querying the API, this might take a while..."
             Write-Host "Creating the cache"
+            Write-Host "Querying the API"
             New-Cache | Merge-Object -Override -Source ([PSCustomObject]@{
                     SkinPath           = $SkinPath
                     SettingsPath       = $SettingsPath
@@ -311,6 +326,7 @@ begin {
                     ConfigEditor       = $ConfigEditor
                 }) | Add-SkinLists -Fallback | Save-Cache -Path "$($RootConfigPath)\cache.json" -Quiet
 
+            Update-Status "Copying script files"
             Write-Host "Copying script files from '$RootConfigPath' to '$InstallPath'"
             New-Item -ItemType Directory -Path "$($InstallPath)"
             # Copy directories
@@ -319,12 +335,14 @@ begin {
             # Copy loose files
             Get-ChildItem -Path "$($RootConfigPath)\*" -File -Include "*.ps1", "*.bat", "*.json" | Copy-Item -Destination "$($InstallPath)"
 
-            Write-Host "Adding '$InstallPath' to PATH"
+            Update-Status "Adding mond to PATH"
+            Write-Host "Adding '$InstallPath' to user environment PATH"
             Set-PathVariable -AddPath $InstallPath
 
-            Write-Host "Successfully installed MonD $($MetersOnDemand.Version)!"
+            Update-Status "Install complete!"
+            Write-Host "Successfully installed Meters on Demand $($MetersOnDemand.Version)!"
 
-            Invoke-Bang "[!About][!DeactivateConfig]"
+            Invoke-Bang "[!Delay 500][!About][!DeactivateConfig]"
         }
         catch {
             Write-Exception -Exception $_ -Breaking

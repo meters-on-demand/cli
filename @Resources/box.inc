@@ -1,26 +1,12 @@
 [Variables]
 Scale=3
 
-; Shadow=240, 240, 255
-Outline0=42,109,155
-Fill0=255,255,255
-Wave0=224,144,40
-
-Outline1=59, 110, 20
-Fill1=96, 165, 41
-Wave1=240, 240, 255
-
-Installer=0
-
 OffsetX=-68.583984
 OffsetY=-60
 Offset=(#OffsetX#),(#OffsetY#)
 
 WaveLength=40
 WaveAmplitude=23
-
-SkinWidth=(119 * #Scale#)
-SkinHeight=(136 * #Scale#)
 
 [bg]
 Meter=Image

@@ -52,6 +52,7 @@ Invoke-Pester -Output Detailed
 # TO-DO:
 
 - [x] Release 1.5 with ExecutionPolicy fix
+- [x] Report install status to the skin
 - [ ] Convert into PowerShell module
 - [ ] Make nonp and ContextMenu "mondx" scripts (like npx but for mond skull)
   - Ask cari if I can yoink the FixSkinPath stuffs into mondx too
