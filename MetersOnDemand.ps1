@@ -185,7 +185,7 @@ DynamicParam {
 begin {
     # Globals
     $MetersOnDemand = [PSCustomObject]@{ 
-        Version       = "v1.3.0"
+        Version       = "v1.9.9"
         Directory     = "#Mond"
         FileName      = "MetersOnDemand.ps1"
         FullName      = "meters-on-demand/cli"
