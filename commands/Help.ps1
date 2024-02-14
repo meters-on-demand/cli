@@ -87,8 +87,8 @@ function Help {
         },
         [pscustomobject]@{
             Name        = "bang"
-            Signature   = "[[-Bang] <bangs>] [-StartRainmeter | -Start] [-StopRainmeter | -Stop]"
-            Description = "runs bangs through `$RmApi or by commanding the executable directly`n if -Start or -Stop is present, bangs are run after or before starting or stopping Rainmeter`n you can also call bang directly without mond"
+            Signature   = "[[-Bang] <bangs>] [-StartRainmeter | -Start] [-StopRainmeter | -Stop] [-NoStart]"
+            Description = "runs bangs through `$RmApi or by commanding the executable directly`n if -Start or -Stop is present, bangs are run after or before starting or stopping Rainmeter`n if -NoStart is present, mond will skip the bang if Rainmeter is not running.`n you can also call the bang command directly without the mond prefix"
         },
         [pscustomobject]@{
             Name        = "open"
