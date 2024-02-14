@@ -11,6 +11,12 @@ function Uninstall {
         $Quiet
     )
 
+    $IsRunning = Test-Rainmeter
+    if ($IsRunning) { 
+        if (!$Quiet) { Write-Host "Stopping Rainmeter" }
+        Invoke-Bang -Stop
+    }
+
     $Cache = $MetersOnDemand.Cache
     $Installed = $Cache.Installed.$FullName
     if (-not $Installed) { 
@@ -29,7 +35,7 @@ function Uninstall {
     }
     Move-Item -Path "$($path)" -Destination $removedDirectory
 
-    $Cache | Add-Installed | Save-Cache $Cache -Quiet
+    $Cache | Add-Installed | Save-Cache -Quiet
 
     # Report results
     if (!$Quiet) {
@@ -37,6 +43,9 @@ function Uninstall {
         Write-Host "Use 'mond restore $($FullName)' to restore"
     }
 
-    Invoke-Bang "[!RefreshApp]" -NoStart
+    if ($IsRunning) { 
+        if (!$Quiet) { Write-Host "Starting Rainmeter" }
+        Invoke-Bang -Start
+    }
 
 }

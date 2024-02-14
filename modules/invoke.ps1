@@ -20,7 +20,9 @@ function Invoke-Bang {
     }
     $ProgramPath = $MetersOnDemand.Cache.ProgramPath
     if ($StopRainmeter) {
-        Get-Process -Name "Rainmeter" -ErrorAction Ignore | Stop-Process
+        $rmp = Get-RainmeterProcess
+        Stop-Process -Id $rmp.id
+        Wait-Process -Id $rmp.id
     }
     if ($StartRainmeter) {
         if (!(Test-Rainmeter)) {
@@ -38,5 +40,9 @@ function Invoke-Bang {
 }
 
 function Test-Rainmeter { 
-    return (Get-Process -Name "Rainmeter" -ErrorAction Ignore)
+    return (!!(Get-RainmeterProcess))
+}
+
+function Get-RainmeterProcess {
+    return Get-Process -Name Rainmeter -ErrorAction Ignore
 }
